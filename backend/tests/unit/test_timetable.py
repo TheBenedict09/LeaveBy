@@ -148,8 +148,14 @@ def test_engine_rides_the_real_trains_when_covered(out):
     sim, d = run(out, deadline)
     access = load_model_config().rail.access_min * 60
     assert list(sim.sims["train"].departures + access) == [at(2026, 11, 2, 7, 45), at(2026, 11, 2, 23, 50)]
-    first = (at(2026, 11, 2, 7, 45), at(2026, 11, 2, 8, 37), "ScotRail", "Edinburgh")
-    assert sim.train_services[0] == (*first, "Glasgow Central", "Edinburgh Waverley")
+    first = sim.train_services[0]
+    assert (first.depart_ts, first.arrive_ts, first.operator, first.headsign) == (
+        at(2026, 11, 2, 7, 45),
+        at(2026, 11, 2, 8, 37),
+        "ScotRail",
+        "Edinburgh",
+    )
+    assert (first.from_name, first.to_name, first.from_coord) == ("Glasgow Central", "Edinburgh Waverley", GLC)
 
 
 def test_engine_falls_back_to_the_generated_timetable_when_not_covered(out):

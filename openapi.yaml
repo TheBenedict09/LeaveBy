@@ -581,6 +581,10 @@ components:
         recommendation_id:
           title: Recommendation Id
           type: string
+        route:
+          anyOf:
+          - $ref: '#/components/schemas/RouteOut'
+          - type: 'null'
         traffic:
           anyOf:
           - $ref: '#/components/schemas/TrafficOut'
@@ -662,6 +666,45 @@ components:
           - $ref: '#/components/schemas/Weights'
           - type: 'null'
       title: RescoreRequest
+      type: object
+    RouteOut:
+      additionalProperties: false
+      description: Map geometry, all (lat, lon). The car line is OSRM's road geometry,
+        simplified; trains have no track shape.
+      properties:
+        car_line:
+          anyOf:
+          - items:
+              maxItems: 2
+              minItems: 2
+              prefixItems:
+              - type: number
+              - type: number
+              type: array
+            type: array
+          - type: 'null'
+          title: Car Line
+        destination:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: Destination
+          type: array
+        origin:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: Origin
+          type: array
+      required:
+      - origin
+      - destination
+      - car_line
+      title: RouteOut
       type: object
     SourceInfo:
       additionalProperties: false
@@ -790,6 +833,14 @@ components:
           format: date-time
           title: Depart At
           type: string
+        from_coord:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: From Coord
+          type: array
         from_station:
           title: From Station
           type: string
@@ -799,6 +850,14 @@ components:
         operator:
           title: Operator
           type: string
+        to_coord:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: To Coord
+          type: array
         to_station:
           title: To Station
           type: string
@@ -809,6 +868,8 @@ components:
       - headsign
       - from_station
       - to_station
+      - from_coord
+      - to_coord
       title: TrainService
       type: object
     ValidationError:
