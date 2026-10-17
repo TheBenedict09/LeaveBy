@@ -147,6 +147,8 @@ class TrainService(Strict):
     headsign: str  # where the train is going (its final stop)
     from_station: str
     to_station: str
+    from_coord: tuple[float, float]  # (lat, lon) of the boarding station
+    to_coord: tuple[float, float]
 
 
 class OptionOut(Strict):
@@ -193,6 +195,14 @@ class IncidentsOut(Strict):
     simulated: bool  # True only for the demo switch; real incidents come from TomTom
 
 
+class RouteOut(Strict):
+    """Map geometry, all (lat, lon). The car line is OSRM's road geometry, simplified; trains have no track shape."""
+
+    origin: tuple[float, float]
+    destination: tuple[float, float]
+    car_line: list[tuple[float, float]] | None
+
+
 class TrafficOut(Strict):
     basis: Literal["live", "predicted", "free-flow"]  # free-flow: no traffic data (OSRM fallback)
     car_min: float  # car time used by the model, before weather and traffic noise
@@ -207,6 +217,7 @@ class RecommendationData(Strict):
     hedge: HedgeOut | None
     explanation: ExplanationOut
     traffic: TrafficOut | None = None
+    route: RouteOut | None = None
     assumptions_ref: str = "/v1/assumptions"
 
 

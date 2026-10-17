@@ -7,10 +7,7 @@ import pytest
 from app.core.config import load_model_config
 from app.decision.rail_mock import avg_speed_kmh, make_rail_noise, rail_times, simulate_train, train_departures
 from app.decision.summarise import p_on_time
-from tests.helpers import DEADLINE as NIGHT
-from tests.helpers import weather
-
-DEADLINE = NIGHT + 9 * 3600  # helpers' deadline is 00:46 UK time, when no train runs; use 09:46
+from tests.helpers import DEADLINE, weather
 
 DIST = 12_000.0
 K = 20

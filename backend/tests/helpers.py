@@ -6,7 +6,8 @@ from app.adapters.weather import WeatherEnsemble
 
 T0 = 1_792_000_000
 H = 120
-DEADLINE = T0 + 30 * 3600
+DEADLINE = T0 + 38 * 3600  # 08:46 UK time on Friday 16 Oct 2026, when trains run
+NIGHT_DEADLINE = T0 + 30 * 3600  # 00:46 UK time: no train runs
 
 
 def weather(

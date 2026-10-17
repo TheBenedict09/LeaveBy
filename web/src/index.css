@@ -225,3 +225,65 @@ body {
     animation: none;
   }
 }
+
+/* Map markers (RouteMap): a rain-blue ring for the start, an amber pin for the destination, small station dots. */
+.lb-pin {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 4px rgb(110 168 255 / 0.18);
+}
+.lb-pin-start {
+  border: 3px solid var(--rain);
+  background: var(--card);
+}
+.lb-pin-end {
+  background: var(--deadline);
+  box-shadow: 0 0 0 4px rgb(255 200 87 / 0.25);
+}
+.lb-station {
+  padding: 1px 6px 1px 14px;
+  border-radius: 9999px;
+  font: 500 11px var(--font-sans);
+  color: var(--foreground);
+  background: rgb(18 24 38 / 0.85) radial-gradient(circle at 7px 50%, var(--rain) 3px, transparent 3.5px);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.maplibregl-ctrl-attrib {
+  font-size: 10px;
+}
+
+/* Header logo: three raindrops falling from the cloud, on a loop. Still under reduced motion. */
+.lb-drop {
+  position: absolute;
+  top: 17px;
+  width: 1.5px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--rain);
+  opacity: 0;
+  animation: lb-fall 1.35s ease-in infinite;
+}
+
+@keyframes lb-fall {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(9px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-drop {
+    animation: none;
+    opacity: 0.7;
+    transform: translateY(3px);
+  }
+}

@@ -84,6 +84,10 @@ def test_happy_path_returns_a_ranked_decision_with_provenance(client, valid_requ
         svc = train["service"]
         assert svc["from_station"].startswith("Glasgow") and svc["to_station"] == "Edinburgh"
         assert when(train["leave_by"]) < when(svc["depart_at"]) < when(svc["arrive_at"])  # leave home, board, arrive
+        assert abs(svc["from_coord"][0] - 55.86) < 0.05 and abs(svc["to_coord"][1] + 3.19) < 0.05
+    route = data["route"]
+    assert route["origin"] == [55.8587, -4.2575] and 2 <= len(route["car_line"]) <= 200
+    assert abs(route["car_line"][0][0] - 55.86) < 0.05  # (lat, lon) order
     bike = mode(data, "bike")  # 75 km by bike is beyond the default 25 km cycling limit
     assert bike["feasible"] is False and bike["infeasible_reason"] == "Further than your cycling limit"
 

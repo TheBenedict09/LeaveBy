@@ -5,7 +5,7 @@ from app.core.mockdata import load_mock_data
 from app.decision.engine import MODES, Problem, RouteInfo, decide, simulate_all
 from app.decision.explain import explain
 from app.decision.simulate import SimResult
-from tests.helpers import DEADLINE, weather
+from tests.helpers import DEADLINE, NIGHT_DEADLINE, weather
 
 WEIGHTS = {"time": 0.4, "cost": 0.2, "carbon": 0.2, "accessibility": 0.2}
 # A 12 km city-to-suburb trip: every mode is a real contender.
@@ -141,6 +141,7 @@ def test_probability_at_leave_by_meets_confidence_for_every_feasible_mode():
 
 
 def test_a_deadline_before_the_first_train_makes_rail_infeasible_with_a_plain_reason():
-    # The shared test deadline is 00:46 UK time: no train runs then, and the first one of the day is too late.
-    train = next(o for o in decide(sim(), problem()).options if o.mode == "train")
+    # 00:46 UK time: no train runs then, and the first one of the day is too late.
+    night = simulate_all(ROUTES, weather(precip=1.0), NIGHT_DEADLINE, 11, load_model_config(), load_mock_data())
+    train = next(o for o in decide(night, problem(deadline_ts=NIGHT_DEADLINE)).options if o.mode == "train")
     assert not train.feasible and train.infeasible_reason == "No train runs early enough"

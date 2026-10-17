@@ -79,6 +79,15 @@ export interface TrainService {
   headsign: string
   from_station: string
   to_station: string
+  from_coord: [number, number] // (lat, lon)
+  to_coord: [number, number]
+}
+
+/** Map geometry, all (lat, lon). The car line is OSRM's road geometry, simplified. */
+export interface Route {
+  origin: [number, number]
+  destination: [number, number]
+  car_line: [number, number][] | null
 }
 
 export interface Hedge {
@@ -104,6 +113,7 @@ export interface RecommendationData {
   hedge: Hedge | null
   explanation: Explanation
   traffic?: Traffic | null
+  route?: Route | null
   assumptions_ref: string
 }
 

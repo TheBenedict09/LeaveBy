@@ -141,6 +141,10 @@ export function SourcesDrawer({
                 </li>
               )}
               {info && <li>CO2e: {info.model.emissions.source}.</li>}
+              <li>
+                Map: OpenFreeMap tiles, © OpenMapTiles, data © OpenStreetMap contributors (ODbL). Rail lines on the map
+                are drawn straight between stations, not along the track.
+              </li>
               {meta.sources.some((s) => s.id === "mock-fares" || s.id === "mock-accessibility") && (
                 <li>Fares and access scores are placeholders until real data is connected.</li>
               )}

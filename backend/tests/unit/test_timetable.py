@@ -148,8 +148,14 @@ def test_engine_rides_the_real_trains_when_covered(out):
     sim, d = run(out, deadline)
     access = load_model_config().rail.access_min * 60
     assert list(sim.sims["train"].departures + access) == [at(2026, 11, 2, 7, 45), at(2026, 11, 2, 23, 50)]
-    first = (at(2026, 11, 2, 7, 45), at(2026, 11, 2, 8, 37), "ScotRail", "Edinburgh")
-    assert sim.train_services[0] == (*first, "Glasgow Central", "Edinburgh Waverley")
+    first = sim.train_services[0]
+    assert (first.depart_ts, first.arrive_ts, first.operator, first.headsign) == (
+        at(2026, 11, 2, 7, 45),
+        at(2026, 11, 2, 8, 37),
+        "ScotRail",
+        "Edinburgh",
+    )
+    assert (first.from_name, first.to_name, first.from_coord) == ("Glasgow Central", "Edinburgh Waverley", GLC)
 
 
 def test_engine_falls_back_to_the_generated_timetable_when_not_covered(out):
@@ -161,6 +167,14 @@ def test_a_deadline_before_the_first_real_train_gets_the_plain_reason(out):
     _, d = run(out, at(2026, 11, 2, 8, 30))
     train = next(o for o in d.options if o.mode == "train")
     assert not train.feasible and train.infeasible_reason == "No train runs early enough"
+
+
+def test_a_train_that_can_make_it_but_not_reliably_says_confidence_not_too_early(out):
+    # The 07:45 reaches the door about 08:45: on time on most mornings for 08:50, but not 90% of them
+    _, d = run(out, at(2026, 11, 2, 8, 50))
+    train = next(o for o in d.options if o.mode == "train")
+    assert 0 < train.summary.p_on_time < 0.9
+    assert train.infeasible_reason == "No train meets 90% confidence for this arrival time"
 
 
 def test_a_day_without_direct_trains_says_so(out):

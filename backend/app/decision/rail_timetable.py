@@ -23,6 +23,22 @@ class Schedule:
     headsigns: tuple[str, ...]
     from_names: tuple[str, ...]
     to_names: tuple[str, ...]
+    from_coords: tuple[tuple[float, float], ...]  # (lat, lon) of each train's boarding station
+    to_coords: tuple[tuple[float, float], ...]
+
+
+@dataclass(frozen=True)
+class TrainRun:
+    """One real scheduled train, as simulated."""
+
+    depart_ts: int
+    arrive_ts: int
+    operator: str
+    headsign: str
+    from_name: str
+    to_name: str
+    from_coord: tuple[float, float]  # (lat, lon)
+    to_coord: tuple[float, float]
 
 
 class OutOfRange(Exception):
@@ -59,12 +75,21 @@ def lookup(
 
     # Same-day trains only (no overnight journeys); GTFS minutes past 1440 belong to the next calendar day.
     rows = sorted(
-        (at(dep), at(arr), op, head, tt.stations[a].name, tt.stations[b].name)
+        (
+            at(dep),
+            at(arr),
+            op,
+            head,
+            tt.stations[a].name,
+            tt.stations[b].name,
+            (tt.stations[a].lat, tt.stations[a].lon),
+            (tt.stations[b].lat, tt.stations[b].lon),
+        )
         for a, b in pairs
         for dep, arr, op, head in tt.pairs[f"{a}-{b}"].get(day_type(day), [])
         if dep < 24 * 60
     )
-    cols = list(zip(*rows, strict=True)) or [()] * 6
+    cols = list(zip(*rows, strict=True)) or [()] * 8
     return Schedule(
         np.array(cols[0], dtype=np.int64),
         np.array(cols[1], dtype=np.int64),

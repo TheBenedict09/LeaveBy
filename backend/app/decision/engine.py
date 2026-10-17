@@ -10,7 +10,7 @@ from app.core.config import ModelConfig
 from app.core.mockdata import MockData
 from app.decision.hedge import Hedge, choose_hedge
 from app.decision.rail_mock import make_rail_noise, simulate_scheduled, simulate_train, train_departures
-from app.decision.rail_timetable import Schedule, scheduled_departures
+from app.decision.rail_timetable import Schedule, TrainRun, scheduled_departures
 from app.decision.scoring import (
     FlipPoint,
     composite,
@@ -54,8 +54,8 @@ class Simulation:
     facts: dict[str, ModeFacts]
     train_cut_early: bool = False  # the deadline needs a train earlier than the first one of the day
     train_no_service: bool = False  # the real timetable has no direct train on that day
-    # Real timetable only: (depart_ts, arrive_ts, operator, headsign, from station, to station) per simulated train.
-    train_services: tuple[tuple[int, int, str, str, str, str], ...] | None = None
+    # Real timetable only: one TrainRun per simulated train, in departure order.
+    train_services: tuple[TrainRun, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -134,7 +134,16 @@ def simulate_all(
         sims["train"] = simulate_scheduled(ride_s, weather, schedule.deps[idx], noise, cfg)
         s = schedule
         services = tuple(
-            (int(s.deps[i]), int(s.arrs[i]), s.operators[i], s.headsigns[i], s.from_names[i], s.to_names[i])
+            TrainRun(
+                int(s.deps[i]),
+                int(s.arrs[i]),
+                s.operators[i],
+                s.headsigns[i],
+                s.from_names[i],
+                s.to_names[i],
+                s.from_coords[i],
+                s.to_coords[i],
+            )
             for i in idx
         )
     else:  # no usable schedule: the generated timetable keeps the option's shape (and is overruled if no service)
@@ -178,7 +187,11 @@ def decide(sim: Simulation, problem: Problem) -> Decision:
     if sim.train_no_service and soft:
         reasons["train"] = "No direct train runs that day"
     elif sim.train_cut_early and reasons["train"] and soft:
-        reasons["train"] = "No train runs early enough"
+        # Some train could make it on some mornings, just not reliably enough: say so, rather than "too late".
+        if summaries["train"].p_on_time > 0:
+            reasons["train"] = f"No train meets {round(problem.confidence * 100)}% confidence for this arrival time"
+        else:
+            reasons["train"] = "No train runs early enough"
     feasible = [m for m in MODES if reasons[m] is None]
 
     raw = {m: _criteria(summaries[m], sim.facts[m], problem) for m in feasible}

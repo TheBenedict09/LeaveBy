@@ -22,6 +22,7 @@ from app.api.schemas import (
     RecommendationData,
     RecommendationRequest,
     RescoreRequest,
+    RouteOut,
     SourceInfo,
     TrafficOut,
     TrainService,
@@ -121,6 +122,7 @@ class Record:
     weather_id: str
     route_ids: dict[str, str]
     traffic: TrafficOut | None = None
+    car_line: list[tuple[float, float]] | None = None  # (lat, lon), simplified, for the map
 
 
 def to_problem(req: RecommendationRequest, deadline_ts: int) -> Problem:
@@ -174,6 +176,7 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
 
     origin, dest = (req.origin.lat, req.origin.lon), (req.destination.lat, req.destination.lon)
     routes: dict[str, RouteInfo] = {}
+    car_line: list[tuple[float, float]] | None = None
     route_ids: dict[str, str] = {}
     failed = 0
     for mode, profile in (("walk", "foot"), ("bike", "bike"), ("drive", "car")):
@@ -189,6 +192,8 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
         sources.append(meta)
         route_ids[mode] = meta.id
         routes[mode] = RouteInfo(route.distance_m, route.duration_s, route.bearing_deg)
+        if mode == "drive":
+            car_line = _thin([(lat, lon) for lon, lat in route.geometry])
 
     if weather_failed and failed == 3:
         raise UpstreamError("every live data source is unavailable")
@@ -246,7 +251,16 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
         weather_id=weather_id,
         route_ids=route_ids,
         traffic=traffic,
+        car_line=car_line,
     )
+
+
+def _thin(points: list[tuple[float, float]], max_points: int = 200) -> list[tuple[float, float]]:
+    """Keep every k-th point (and the last) so the map line stays small."""
+    if len(points) <= max_points:
+        return points
+    step = -(-len(points) // max_points)
+    return [*points[::step][: max_points - 1], points[-1]]
 
 
 async def _traffic(
@@ -371,9 +385,16 @@ def _service(o: OptionResult, rec: Record) -> TrainService | None:
     """The real train behind the leave-by time: the one simulated at the reference departure."""
     if o.mode != "train" or not o.feasible or rec.sim.train_services is None:
         return None
-    dep, arr, operator, headsign, a, b = rec.sim.train_services[o.summary.ref_index]
+    run = rec.sim.train_services[o.summary.ref_index]
     return TrainService(
-        depart_at=_dt(dep), arrive_at=_dt(arr), operator=operator, headsign=headsign, from_station=a, to_station=b
+        depart_at=_dt(run.depart_ts),
+        arrive_at=_dt(run.arrive_ts),
+        operator=run.operator,
+        headsign=run.headsign,
+        from_station=run.from_name,
+        to_station=run.to_name,
+        from_coord=run.from_coord,
+        to_coord=run.to_coord,
     )
 
 
@@ -409,6 +430,11 @@ def to_data(rec: Record) -> RecommendationData:
         hedge=hedge,
         explanation=ExplanationOut(because=ex.because, tradeoffs=ex.tradeoffs, flip_points=ex.flip_points),
         traffic=rec.traffic,
+        route=RouteOut(
+            origin=(rec.request.origin.lat, rec.request.origin.lon),
+            destination=(rec.request.destination.lat, rec.request.destination.lon),
+            car_line=rec.car_line,
+        ),
     )
 
 
