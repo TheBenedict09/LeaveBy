@@ -128,3 +128,52 @@
     @apply font-sans;
     }
 }
+
+/* LeaveBy "night rain" theme. One dark theme only, so the whole app stays uniform.
+   Colour rules: blue = data, mint = safe, amber = deadline, coral = risk. */
+:root,
+.dark {
+  --background: #0b0f17;
+  --foreground: #e6eaf2;
+  --card: #121826;
+  --card-foreground: #e6eaf2;
+  --popover: #121826;
+  --popover-foreground: #e6eaf2;
+  --primary: #6ea8ff;
+  --primary-foreground: #0b0f17;
+  --secondary: #1a2234;
+  --secondary-foreground: #e6eaf2;
+  --muted: #1a2234;
+  --muted-foreground: #9aa6bd;
+  --accent: #1a2234;
+  --accent-foreground: #e6eaf2;
+  --destructive: #ff6b6b;
+  --border: #263047;
+  --input: #263047;
+  --ring: #6ea8ff;
+  --radius: 0.875rem;
+
+  --rain: #6ea8ff;
+  --safe: #5ee0b0;
+  --deadline: #ffc857;
+  --risk: #ff6b6b;
+}
+
+@theme inline {
+  --color-rain: var(--rain);
+  --color-safe: var(--safe);
+  --color-deadline: var(--deadline);
+  --color-risk: var(--risk);
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  font-feature-settings: "ss01", "cv11";
+  background-image: radial-gradient(60rem 30rem at 50% -10%, rgb(110 168 255 / 0.1), transparent 70%);
+  background-attachment: fixed;
+}
