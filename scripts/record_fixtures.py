@@ -40,7 +40,7 @@ async def main() -> None:
     tomorrow_9 = (datetime.now(ZoneInfo("Europe/London")) + timedelta(days=1)).replace(hour=9, minute=0, second=0)
     soon = datetime.now(UTC) + timedelta(minutes=90)  # a trip leaving now, so live traffic incidents are recorded
     for dest in ROUTES.values():
-        for arrive in (tomorrow_9, soon):
+        for arrive in (soon, tomorrow_9):  # last write wins: keep tomorrow morning's predicted car traffic
             req = RecommendationRequest.model_validate(
                 {"origin": GLC, "destination": dest, "arrive_by": arrive.isoformat(), "constraints": {"has_car": True}}
             )
