@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider"
 import { Composer } from "@/components/Composer"
 import { RainCloud } from "@/components/RainCloud"
 import { TradeOff } from "@/components/TradeOff"
+import { SourcesDrawer } from "@/components/SourcesDrawer"
 import { TrafficLine } from "@/components/TrafficLine"
 import { VerdictStats } from "@/components/VerdictStats"
 import { Priorities } from "@/components/Priorities"
@@ -189,6 +190,7 @@ export default function App() {
                 </p>
               )}
               {data?.traffic && <TrafficLine traffic={data.traffic} />}
+              {data && result && <SourcesDrawer meta={result.meta} data={data} confidence={result.confidence} />}
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               {headline ? (
