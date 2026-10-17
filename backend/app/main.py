@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -8,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import envelope
 from app.api.routes import router
 from app.api.services import Services
+from app.core.env import load_env
 
 
 @asynccontextmanager
@@ -26,4 +28,6 @@ def create_app(services: Services | None = None) -> FastAPI:
     return app
 
 
+logging.getLogger("httpx").setLevel(logging.WARNING)  # request logs would include provider keys
+load_env()
 app = create_app()

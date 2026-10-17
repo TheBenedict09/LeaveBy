@@ -219,3 +219,99 @@ def test_sources_and_assumptions_are_public(client):
     assert a["model"]["rail"]["calm_within_5min_target"] == 0.865 and a["model"]["rail"]["calm_target_sources"]
     assert "placeholder" in a["model"]["status"] and a["mock_data"]["kind"] == "mock"
     assert a["model"]["noise"]["sigma"]["drive"] > 0
+
+
+# --- TomTom traffic (synthetic responses, fake key, no network) ---------------------------------------------
+
+TOMTOM_ROUTE = {
+    "routes": [
+        {
+            "summary": {"lengthInMeters": 78600, "travelTimeInSeconds": 4800},
+            "legs": [{"points": [{"latitude": 55.86, "longitude": -4.26}, {"latitude": 55.95, "longitude": -3.19}]}],
+        }
+    ]
+}
+CRASH = {"delay": 540, "events": [{"description": "Crash"}], "from": "M8 J15"}
+TOMTOM_INCIDENTS = {"incidents": [{"properties": CRASH}]}
+
+
+@pytest.fixture
+def traffic_client():
+    from fastapi.testclient import TestClient
+
+    from app.adapters.tomtom import TrafficAdapter
+    from app.api.services import Services
+    from app.main import create_app
+
+    services = Services.create(routing_interval_s=0.0)
+    services.traffic = TrafficAdapter(services.client, "fake-key")
+    return TestClient(create_app(services), raise_server_exceptions=False)
+
+
+def stub_tomtom(status: int = 200):
+    return SimpleNamespace(
+        route=respx.get(url__regex=r"https://api\.tomtom\.com/routing/.*").mock(
+            return_value=httpx.Response(status, json=TOMTOM_ROUTE if status == 200 else {})
+        ),
+        incidents=respx.get(url__regex=r"https://api\.tomtom\.com/traffic/.*").mock(
+            return_value=httpx.Response(200, json=TOMTOM_INCIDENTS)
+        ),
+    )
+
+
+@respx.mock
+def test_tomorrow_uses_predicted_traffic_for_the_car_and_no_incidents(traffic_client, valid_request):
+    stub()
+    tt = stub_tomtom()
+    body = traffic_client.post("/v1/recommendations", json=with_car(valid_request)).json()
+    traffic = body["data"]["traffic"]
+    assert traffic["basis"] == "predicted" and traffic["car_min"] == 80.0 and traffic["incidents"] is None
+    assert tt.incidents.call_count == 0  # incidents now say nothing about Monday morning
+    drive = mode(body["data"], "drive")
+    assert "tomtom-predicted" in drive["provenance"]
+    assert {s["id"] for s in body["meta"]["sources"]} >= {"tomtom-predicted"}
+
+
+@respx.mock
+def test_a_trip_leaving_soon_uses_live_traffic_and_reports_incidents(traffic_client, valid_request):
+    stub()
+    stub_tomtom()
+    soon = {**with_car(valid_request), "arrive_by": "2026-10-17T15:00:00+01:00"}  # now is 13:00 BST
+    traffic = traffic_client.post("/v1/recommendations", json=soon).json()["data"]["traffic"]
+    assert traffic["basis"] == "live"
+    assert traffic["incidents"] == {
+        "count": 1,
+        "worst_delay_min": 9.0,
+        "description": "Crash from M8 J15",
+        "simulated": False,
+    }
+
+
+@respx.mock
+def test_tomtom_failure_falls_back_to_free_flow_with_a_warning(traffic_client, valid_request):
+    stub()
+    stub_tomtom(status=503)
+    body = traffic_client.post("/v1/recommendations", json=with_car(valid_request)).json()
+    assert body["ok"] is True and body["data"]["traffic"]["basis"] == "free-flow"
+    assert [w["code"] for w in body["meta"]["warnings"]] == ["TRAFFIC_UNAVAILABLE"]
+    assert "fake-key" not in str(body)
+
+
+@respx.mock
+def test_without_a_key_the_response_is_unchanged(client, valid_request):
+    stub()
+    body = client.post("/v1/recommendations", json=with_car(valid_request)).json()
+    assert body["data"]["traffic"] is None and not respx.calls.last.request.url.host.endswith("tomtom.com")
+
+
+@respx.mock
+def test_the_demo_accident_is_labelled_simulated_everywhere(client, valid_request):
+    stub()
+    plain = client.post("/v1/recommendations", json=with_car(valid_request)).json()["data"]
+    req = {**with_car(valid_request), "options": {"simulate_incident": True}}
+    body = client.post("/v1/recommendations", json=req).json()
+    data = body["data"]
+    assert data["traffic"]["incidents"]["simulated"] is True and data["traffic"]["basis"] == "free-flow"
+    assert "simulated-incident" in mode(data, "drive")["provenance"]
+    assert {s["kind"] for s in body["meta"]["sources"] if s["id"] == "simulated-incident"} == {"mock"}
+    assert when(mode(data, "drive")["arrival"]["p50"]) > when(mode(plain, "drive")["arrival"]["p50"])

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Slider } from "@/components/ui/slider"
 import { Composer } from "@/components/Composer"
 import { RainCloud } from "@/components/RainCloud"
+import { TrafficLine } from "@/components/TrafficLine"
 import { VerdictStats } from "@/components/VerdictStats"
 import { ApiFailure, createRecommendation, rescore } from "@/lib/api"
 import { arriveByIso, fmtTime, MODE_LABEL, pct } from "@/lib/format"
@@ -61,6 +62,7 @@ export default function App() {
         arrive_by: arriveBy,
         confidence: confidence[0] / 100,
         constraints: { step_free: false, max_walk_m: 1200, max_bike_m: 25000, has_luggage: false, has_car: v.hasCar },
+        options: { simulate_incident: v.simulateIncident },
       })
       if (n !== latest.current) return
       setResult({ ...res, arriveBy, runId: res.data.recommendation_id, confidence: confidence[0] })
@@ -162,6 +164,7 @@ export default function App() {
                 </p>
               )}
               {winner && result && <VerdictStats option={winner} meta={result.meta} />}
+              {data?.traffic && <TrafficLine traffic={data.traffic} />}
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               {headline ? (

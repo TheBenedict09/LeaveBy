@@ -81,6 +81,11 @@ class EmissionsCfg(_Cfg):
     kg_co2e_per_km: dict[str, float]
 
 
+class TrafficCfg(_Cfg):
+    live_window_h: float
+    simulated_incident_delay_min: float
+
+
 class ModelConfig(_Cfg):
     status: str
     grid: GridCfg
@@ -91,6 +96,7 @@ class ModelConfig(_Cfg):
     walk: WalkCfg
     rail: RailCfg
     emissions: EmissionsCfg
+    traffic: TrafficCfg
 
 
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "model.yaml"

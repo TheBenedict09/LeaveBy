@@ -1,3 +1,7 @@
+import os
+
+os.environ["TOMTOM_API_KEY"] = ""  # tests never call TomTom; set before the app (and its .env loader) is imported
+
 from datetime import UTC, datetime
 
 import pytest

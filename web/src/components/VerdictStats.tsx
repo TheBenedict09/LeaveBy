@@ -6,6 +6,7 @@ import type { Meta, Option } from "@/lib/types"
 const SOURCE_LABEL: Record<string, string> = {
   "mock-rail": "train times and delays",
   "mock-rail-delays": "train delays (the timetable itself is real)",
+  "simulated-incident": "the accident (a demo, not real)",
   "mock-fares": "fares and running costs",
   "mock-accessibility": "access score",
 }

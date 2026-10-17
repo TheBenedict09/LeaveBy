@@ -345,6 +345,32 @@ components:
       - reason
       title: HedgeOut
       type: object
+    IncidentsOut:
+      additionalProperties: false
+      properties:
+        count:
+          minimum: 0.0
+          title: Count
+          type: integer
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        simulated:
+          title: Simulated
+          type: boolean
+        worst_delay_min:
+          minimum: 0.0
+          title: Worst Delay Min
+          type: number
+      required:
+      - count
+      - worst_delay_min
+      - description
+      - simulated
+      title: IncidentsOut
+      type: object
     Meta:
       additionalProperties: false
       properties:
@@ -496,6 +522,10 @@ components:
           default: true
           title: Hedge
           type: boolean
+        simulate_incident:
+          default: false
+          title: Simulate Incident
+          type: boolean
         stress_test:
           default: false
           title: Stress Test
@@ -551,6 +581,10 @@ components:
         recommendation_id:
           title: Recommendation Id
           type: string
+        traffic:
+          anyOf:
+          - $ref: '#/components/schemas/TrafficOut'
+          - type: 'null'
       required:
       - recommendation_id
       - headline
@@ -587,6 +621,7 @@ components:
           default:
             explain: template
             hedge: true
+            simulate_incident: false
             stress_test: false
         origin:
           $ref: '#/components/schemas/Place'
@@ -716,6 +751,33 @@ components:
       required:
       - sources
       title: SourcesData
+      type: object
+    TrafficOut:
+      additionalProperties: false
+      properties:
+        basis:
+          enum:
+          - live
+          - predicted
+          - free-flow
+          title: Basis
+          type: string
+        car_min:
+          title: Car Min
+          type: number
+        free_flow_min:
+          title: Free Flow Min
+          type: number
+        incidents:
+          anyOf:
+          - $ref: '#/components/schemas/IncidentsOut'
+          - type: 'null'
+      required:
+      - basis
+      - car_min
+      - free_flow_min
+      - incidents
+      title: TrafficOut
       type: object
     TrainService:
       additionalProperties: false

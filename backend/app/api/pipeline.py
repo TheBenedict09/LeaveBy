@@ -16,11 +16,13 @@ from app.api.schemas import (
     ExplanationOut,
     Headline,
     HedgeOut,
+    IncidentsOut,
     OptionOut,
     RecommendationData,
     RecommendationRequest,
     RescoreRequest,
     SourceInfo,
+    TrafficOut,
     TrainService,
 )
 from app.api.services import Services
@@ -102,6 +104,7 @@ class Record:
     degraded: bool
     weather_id: str
     route_ids: dict[str, str]
+    traffic: TrafficOut | None = None
 
 
 def to_problem(req: RecommendationRequest, deadline_ts: int) -> Problem:
@@ -174,6 +177,8 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
     if weather_failed and failed == 3:
         raise UpstreamError("every live data source is unavailable")
 
+    traffic = await _traffic(req, services, routes, route_ids, sources, warnings, deadline_ts, now)
+
     if req.options.stress_test:
         warnings.append({"code": "STRESS_TEST_UNAVAILABLE", "message": "Worst-10% planning is not available yet."})
 
@@ -224,7 +229,63 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
         degraded=any(w["code"] in DEGRADED_CODES for w in warnings),
         weather_id=weather_id,
         route_ids=route_ids,
+        traffic=traffic,
     )
+
+
+async def _traffic(
+    req: RecommendationRequest,
+    services: Services,
+    routes: dict[str, RouteInfo],
+    route_ids: dict[str, str],
+    sources: list[SourceMeta],
+    warnings: list[dict[str, str]],
+    deadline_ts: int,
+    now: datetime,
+) -> TrafficOut | None:
+    """Replace the free-flow car time with TomTom's traffic time (live for trips leaving soon, predicted for
+    later ones), report incidents for live trips, and apply the demo accident if asked. Mutates routes."""
+    cfg = services.cfg.traffic
+    drive = routes["drive"]
+    free_flow_s = drive.duration_s
+    basis = "free-flow"
+    incidents: IncidentsOut | None = None
+    if services.traffic is not None:
+        depart_ts = int(deadline_ts - free_flow_s * 1.3)  # a rough leave time, good enough for a 15 min bucket
+        live = depart_ts - now.timestamp() < cfg.live_window_h * 3600
+        origin, dest = (req.origin.lat, req.origin.lon), (req.destination.lat, req.destination.lon)
+        try:
+            r = await services.traffic.route(origin, dest, depart_ts, live)
+            drive = RouteInfo(r.data.distance_m, r.data.duration_s, drive.bearing_deg)
+            basis = r.data.basis
+            route_ids["drive"] = r.meta.id
+            sources.append(r.meta)
+            if live:
+                found = await services.traffic.incidents(r.data.bbox)
+                if found is not None and found.count:
+                    incidents = IncidentsOut(
+                        count=found.count,
+                        worst_delay_min=found.worst_delay_s / 60,
+                        description=found.description,
+                        simulated=False,
+                    )
+        except UpstreamError:
+            msg = "Traffic data unavailable. Car times use free-flow routing without traffic."
+            warnings.append({"code": "TRAFFIC_UNAVAILABLE", "message": msg})
+    if req.options.simulate_incident:
+        delay_s = cfg.simulated_incident_delay_min * 60
+        drive = RouteInfo(drive.distance_m, drive.duration_s + delay_s, drive.bearing_deg)
+        incidents = IncidentsOut(
+            count=1,
+            worst_delay_min=delay_s / 60,
+            description="Simulated accident on your route (demo)",
+            simulated=True,
+        )
+        sources.append(SourceMeta(id="simulated-incident", kind="mock", fetched_at=now, age_s=0, licence="Demo only"))
+    routes["drive"] = drive
+    if services.traffic is None and not req.options.simulate_incident:
+        return None  # no traffic data configured: the response stays as it always was
+    return TrafficOut(basis=basis, car_min=drive.duration_s / 60, free_flow_min=free_flow_s / 60, incidents=incidents)
 
 
 def rescore(rec: Record, body: RescoreRequest) -> Record:
@@ -258,6 +319,8 @@ def _provenance(mode: str, rec: Record) -> list[str]:
     if mode == "train":
         real = rec.sim.train_services is not None or rec.sim.train_no_service
         ids += ["rdg-timetable", "mock-rail-delays"] if real else ["mock-rail"]
+    if mode == "drive" and rec.traffic and rec.traffic.incidents and rec.traffic.incidents.simulated:
+        ids.append("simulated-incident")
     if mode in ("train", "drive"):
         ids.append("mock-fares")
     return [*ids, "desnz-ghg-2026", "mock-accessibility"]
@@ -329,6 +392,7 @@ def to_data(rec: Record) -> RecommendationData:
         options=[_option_out(o, rec) for o in d.options],
         hedge=hedge,
         explanation=ExplanationOut(because=ex.because, tradeoffs=ex.tradeoffs, flip_points=ex.flip_points),
+        traffic=rec.traffic,
     )
 
 
