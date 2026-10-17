@@ -1,0 +1,38 @@
+# Every number the decision engine uses. Served at GET /v1/assumptions (step 7) and shown in the UI.
+# PLACEHOLDER HEURISTICS: transparent assumptions, not fitted to data. Calibrate if real delay data exists.
+status: "placeholder heuristics, not fitted or validated"
+
+grid:                    # departure times simulated per mode, relative to the base (no-weather) duration
+  step_min: 5
+  earliest_mult: 2.5     # earliest departure = deadline - 2.5 * base - pad
+  latest_mult: 0.75      # latest departure   = deadline - 0.75 * base
+  pad_min: 15
+
+noise:                   # multiplicative lognormal traffic noise, median 1: exp(N(0, sigma))
+  n_draws: 40
+  sigma: { walk: 0.05, bike: 0.07, drive: 0.12 }
+
+speed:
+  min_factor: 0.25       # weather never slows anything below 25% of base speed
+
+bike:
+  k_rain: 0.08           # speed lost per mm/h of rain
+  rain_cap: 0.40
+  k_headwind: 0.04       # speed lost per m/s of headwind above the threshold
+  headwind_threshold_ms: 2.0
+  headwind_cap: 0.40
+  ice_threshold_c: 1.0
+  ice_penalty: 0.70
+
+drive:
+  k_rain: 0.03
+  rain_cap: 0.25
+  gust_threshold_ms: 15.0
+  k_gust: 0.015
+  gust_cap: 0.20
+  visibility_good_m: 2000
+  visibility_floor: 0.60
+
+walk:
+  k_rain: 0.02
+  rain_cap: 0.15
