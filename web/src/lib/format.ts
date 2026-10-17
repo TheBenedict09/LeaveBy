@@ -7,6 +7,14 @@ export const MODE_LABEL: Record<Mode, string> = {
   train: "by train",
 }
 
+/** The option as a sentence subject: "the train is on time". */
+export const MODE_NOUN: Record<Mode, string> = {
+  walk: "walking",
+  bike: "cycling",
+  drive: "the car",
+  train: "the train",
+}
+
 export function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
 }
