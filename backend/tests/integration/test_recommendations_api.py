@@ -56,8 +56,11 @@ def test_happy_path_returns_a_ranked_decision_with_provenance(client, valid_requ
 
     assert meta["degraded"] is False and meta["warnings"] == []
     ids = {s["id"] for s in meta["sources"]}
-    assert {"open-meteo-ensemble", "osrm", "mock-rail", "mock-fares"} <= ids
-    assert {s["kind"] for s in meta["sources"] if s["id"] == "mock-rail"} == {"mock"}
+    # Glasgow Central to Edinburgh on Monday 19 Oct 2026 is inside the committed real timetable extract
+    assert {"open-meteo-ensemble", "osrm", "rdg-timetable", "mock-rail-delays", "mock-fares"} <= ids
+    assert "mock-rail" not in ids
+    kinds = {s["id"]: s["kind"] for s in meta["sources"]}
+    assert kinds["rdg-timetable"] == "static" and kinds["mock-rail-delays"] == "mock"
 
     assert {o["mode"] for o in data["options"]} == {"walk", "bike", "drive", "train"}
     ranked = [o for o in data["options"] if o["rank"] is not None]
@@ -71,6 +74,12 @@ def test_happy_path_returns_a_ranked_decision_with_provenance(client, valid_requ
     walk = mode(data, "walk")  # 77 km on foot is beyond the default 1200 m limit
     assert walk["feasible"] is False and walk["infeasible_reason"] == "Further than your walking limit"
     assert walk["rank"] is None and walk["leave_by"] is None
+    train = mode(data, "train")
+    assert "rdg-timetable" in train["provenance"] and "mock-rail" not in train["provenance"]
+    if train["feasible"]:
+        svc = train["service"]
+        assert svc["from_station"].startswith("Glasgow") and svc["to_station"] == "Edinburgh"
+        assert when(train["leave_by"]) < when(svc["depart_at"]) < when(svc["arrive_at"])  # leave home, board, arrive
     bike = mode(data, "bike")  # 75 km by bike is beyond the default 25 km cycling limit
     assert bike["feasible"] is False and bike["infeasible_reason"] == "Further than your cycling limit"
 
@@ -200,7 +209,9 @@ def test_geocode_rejects_bad_input(client):
 
 def test_sources_and_assumptions_are_public(client):
     s = client.get("/v1/sources").json()["data"]["sources"]
-    assert {x["kind"] for x in s} == {"live", "mock"}
+    assert {x["kind"] for x in s} == {"live", "static", "mock"}
+    assert any(x["id"] == "rdg-timetable" and "Rail Delivery Group" in x["attribution"] for x in s)
     a = client.get("/v1/assumptions").json()["data"]
+    assert a["model"]["rail"]["calm_within_5min_target"] == 0.865 and a["model"]["rail"]["calm_target_sources"]
     assert "placeholder" in a["model"]["status"] and a["mock_data"]["kind"] == "mock"
     assert a["model"]["noise"]["sigma"]["drive"] > 0

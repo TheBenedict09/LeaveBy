@@ -21,6 +21,7 @@ from app.api.schemas import (
     RecommendationRequest,
     RescoreRequest,
     SourceInfo,
+    TrainService,
 )
 from app.api.services import Services
 from app.core import clock
@@ -29,11 +30,14 @@ from app.core.seed import seed_from
 from app.core.types import SourceMeta
 from app.decision.engine import Decision, OptionResult, Problem, RouteInfo, Simulation, decide, simulate_all
 from app.decision.explain import explain
+from app.decision.rail_timetable import OutOfRange, lookup
 
+TIMETABLE_ATTRIBUTION = "Timetable data: Rail Delivery Group (DTD feed), via planarnetwork/gb-transit"
 DEGRADED_CODES = {"WEATHER_UNAVAILABLE", "WEATHER_STALE", "ROUTE_ESTIMATED"}
 STALE_AFTER_S = 30 * 60
 MOCK_SOURCES = {
     "mock-rail": "Simulated data",
+    "mock-rail-delays": "Simulated, calibrated to published punctuality",
     "mock-fares": "Simulated data",
     "mock-accessibility": "Simulated data",
     "mock-emissions": "Placeholder values, replace with official factors",
@@ -60,10 +64,18 @@ REGISTRY = [
         licence="Non-commercial use",
         attribution="Geocoding by Open-Meteo.com",
     ),
+    SourceInfo(
+        id="rdg-timetable",
+        kind="static",
+        role="Train timetable (real scheduled trains, static file)",
+        licence="Rail Delivery Group open data",
+        attribution=TIMETABLE_ATTRIBUTION,
+    ),
     *[
         SourceInfo(id=sid, kind="mock", role=role, licence=lic)
         for sid, role, lic in [
-            ("mock-rail", "Train timetable and delays", MOCK_SOURCES["mock-rail"]),
+            ("mock-rail", "Trains where the real timetable does not reach", MOCK_SOURCES["mock-rail"]),
+            ("mock-rail-delays", "Train delays", MOCK_SOURCES["mock-rail-delays"]),
             ("mock-fares", "Fares and running costs", MOCK_SOURCES["mock-fares"]),
             ("mock-accessibility", "Step-free access and effort", MOCK_SOURCES["mock-accessibility"]),
             ("mock-emissions", "Carbon per km", MOCK_SOURCES["mock-emissions"]),
@@ -167,10 +179,32 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
             "t": deadline_ts,
         }
     )
-    sim = simulate_all(routes, weather, deadline_ts, seed, services.cfg, services.data)
+    schedule = None
+    if services.timetable is not None:
+        try:
+            schedule = lookup(services.timetable, origin, dest, deadline_ts, services.cfg)
+        except OutOfRange:
+            tt = services.timetable
+            msg = f"Real train times cover {tt.valid_from} to {tt.valid_to}. Using simulated trains for this date."
+            warnings.append({"code": "TIMETABLE_OUT_OF_RANGE", "message": msg})
+    sim = simulate_all(routes, weather, deadline_ts, seed, services.cfg, services.data, schedule)
     problem = to_problem(req, deadline_ts)
+    if schedule is not None:
+        assert services.timetable is not None
+        sources.append(
+            SourceMeta(
+                id="rdg-timetable",
+                kind="static",
+                fetched_at=now,
+                age_s=0,
+                licence=f"Rail Delivery Group open data, feed {services.timetable.release}",
+                attribution=TIMETABLE_ATTRIBUTION,
+            )
+        )
+    unused = "mock-rail" if schedule is not None else "mock-rail-delays"
     for sid, lic in MOCK_SOURCES.items():
-        sources.append(SourceMeta(id=sid, kind="mock", fetched_at=now, age_s=0, licence=lic))
+        if sid != unused:
+            sources.append(SourceMeta(id=sid, kind="mock", fetched_at=now, age_s=0, licence=lic))
     return Record(
         id="rec_" + uuid.uuid4().hex[:10],
         request=req,
@@ -215,7 +249,8 @@ def _dt(ts: int) -> datetime:
 def _provenance(mode: str, rec: Record) -> list[str]:
     ids = [rec.weather_id, rec.route_ids["drive" if mode == "train" else mode]]
     if mode == "train":
-        ids.append("mock-rail")
+        real = rec.sim.train_services is not None or rec.sim.train_no_service
+        ids += ["rdg-timetable", "mock-rail-delays"] if real else ["mock-rail"]
     if mode in ("train", "drive"):
         ids.append("mock-fares")
     return [*ids, "mock-emissions", "mock-accessibility"]
@@ -242,6 +277,17 @@ def _option_out(o: OptionResult, rec: Record) -> OptionOut:
         cliff=[CliffPoint(leave=_dt(t), p_on_time=x) for t, x in s.cliff],
         scenario_arrivals=[_dt(t) for t in s.scenario_arrivals],
         provenance=_provenance(o.mode, rec),
+        service=_service(o, rec),
+    )
+
+
+def _service(o: OptionResult, rec: Record) -> TrainService | None:
+    """The real train behind the leave-by time: the one simulated at the reference departure."""
+    if o.mode != "train" or not o.feasible or rec.sim.train_services is None:
+        return None
+    dep, arr, operator, headsign, a, b = rec.sim.train_services[o.summary.ref_index]
+    return TrainService(
+        depart_at=_dt(dep), arrive_at=_dt(arr), operator=operator, headsign=headsign, from_station=a, to_station=b
     )
 
 

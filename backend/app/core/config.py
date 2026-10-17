@@ -55,6 +55,7 @@ class WalkCfg(_Cfg):
 
 
 class RailCfg(_Cfg):
+    station_radius_m: float
     headway_min: int
     speed_table_km_kmh: list[tuple[float, float]]
     timezone: str
@@ -62,6 +63,8 @@ class RailCfg(_Cfg):
     last_departure: time
     access_min: float
     egress_min: float
+    calm_within_5min_target: float
+    calm_target_sources: list[str]
     p_on_time_base: float
     delay_median_min: float
     delay_sigma: float

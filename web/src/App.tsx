@@ -154,6 +154,13 @@ export default function App() {
               >
                 {loading ? "Working..." : headline ? `Leave at ${fmtTime(headline.leave_at)}` : "--:--"}
               </CardTitle>
+              {winner?.service && (
+                <p className="text-sm text-muted-foreground">
+                  Catch the <span className="font-mono text-foreground">{fmtTime(winner.service.depart_at)}</span>{" "}
+                  {winner.service.operator} from {winner.service.from_station}, arrives {winner.service.to_station} at{" "}
+                  <span className="font-mono text-foreground">{fmtTime(winner.service.arrive_at)}</span>.
+                </p>
+              )}
               {winner && result && <VerdictStats option={winner} meta={result.meta} />}
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">

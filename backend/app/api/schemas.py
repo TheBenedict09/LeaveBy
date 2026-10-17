@@ -139,6 +139,15 @@ class AccessibilityOut(Strict):
     score: float = Field(ge=0, le=1)
 
 
+class TrainService(Strict):
+    depart_at: datetime
+    arrive_at: datetime
+    operator: str
+    headsign: str  # where the train is going (its final stop)
+    from_station: str
+    to_station: str
+
+
 class OptionOut(Strict):
     mode: Mode
     rank: int | None
@@ -157,6 +166,7 @@ class OptionOut(Strict):
     cliff: list[CliffPoint]
     scenario_arrivals: list[datetime]
     provenance: list[str]
+    service: TrainService | None = None  # the real train to catch, when the timetable covers the trip
 
 
 class HedgeOut(Strict):
@@ -190,7 +200,7 @@ class GeocodeData(Strict):
 
 class SourceInfo(Strict):
     id: str
-    kind: Literal["live", "mock", "cached", "estimated"]
+    kind: Literal["live", "static", "mock", "cached", "estimated"]
     role: str
     licence: str
     attribution: str | None = None

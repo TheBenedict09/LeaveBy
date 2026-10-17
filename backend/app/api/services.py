@@ -14,6 +14,7 @@ from app.adapters.routing import RoutingAdapter
 from app.adapters.weather import WeatherAdapter
 from app.core.config import ModelConfig, load_model_config
 from app.core.mockdata import MockData, load_mock_data
+from app.core.timetable import RailTimetable, load_timetable
 
 if TYPE_CHECKING:
     from app.api.pipeline import Record
@@ -45,6 +46,7 @@ class Services:
     cfg: ModelConfig
     data: MockData
     store: Store = field(default_factory=Store)
+    timetable: RailTimetable | None = None  # real GB rail timetable extract, if data/rail_timetable.json exists
 
     @classmethod
     def create(
@@ -59,6 +61,7 @@ class Services:
             geocode=GeocodeAdapter(client, ua),
             cfg=load_model_config(),
             data=load_mock_data(),
+            timetable=load_timetable(),
         )
 
 
