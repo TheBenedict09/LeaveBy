@@ -8,6 +8,8 @@ from typing import Any
 
 import httpx
 
+DEFAULT_BACKOFF_S = 0.25  # tests set this to 0
+
 
 class UpstreamError(Exception):
     """A provider could not give us usable data (network, 5xx, 4xx, or malformed body)."""
@@ -20,7 +22,7 @@ async def get_json(
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
     retries: int = 2,
-    backoff_s: float = 0.25,
+    backoff_s: float | None = None,
     timeout_s: float = 3.0,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> Any:
@@ -44,6 +46,7 @@ async def get_json(
                 raise
             last = e
         if attempt < retries:
-            await sleep(backoff_s * (2**attempt) * (0.5 + random.random()))
+            base = DEFAULT_BACKOFF_S if backoff_s is None else backoff_s
+            await sleep(base * (2**attempt) * (0.5 + random.random()))
     assert last is not None
     raise last

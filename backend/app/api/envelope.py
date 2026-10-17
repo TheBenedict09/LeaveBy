@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core import clock
+from app.core.resilience import UpstreamError
 
 _CODES = {404: "NOT_FOUND", 422: "VALIDATION_ERROR", 429: "RATE_LIMITED", 502: "UPSTREAM_UNAVAILABLE"}
 
@@ -76,6 +77,16 @@ def install(app: FastAPI) -> None:
     async def _http(request: Request, exc: StarletteHTTPException):
         code = _CODES.get(exc.status_code, "INTERNAL")
         return error_response(exc.status_code, code, "Request failed", str(exc.detail), _rid(request))
+
+    @app.exception_handler(UpstreamError)
+    async def _upstream(request: Request, exc: UpstreamError):
+        return error_response(
+            502,
+            "UPSTREAM_UNAVAILABLE",
+            "Upstream unavailable",
+            "Can't compute a reliable recommendation right now. Try again in a minute.",
+            _rid(request),
+        )
 
     @app.exception_handler(Exception)
     async def _unhandled(request: Request, exc: Exception):
