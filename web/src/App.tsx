@@ -3,7 +3,7 @@ import { CloudRain } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
-import { Composer } from "@/components/composer"
+import { Composer } from "@/components/Composer"
 import { createRecommendation } from "@/lib/api"
 import { arriveByIso, fmtTime, MODE_LABEL, pct } from "@/lib/format"
 import type { ComposerValue, Meta, RecommendationData } from "@/lib/types"
@@ -45,7 +45,7 @@ export default function App() {
           destination: v.destination,
           arrive_by: arriveByIso(v.dayOffset, v.time),
           confidence: confidence[0] / 100,
-          constraints: { step_free: false, max_walk_m: 1200, has_luggage: false, has_car: v.hasCar },
+          constraints: { step_free: false, max_walk_m: 1200, max_bike_m: 25000, has_luggage: false, has_car: v.hasCar },
         }),
       )
     } catch (e) {
@@ -111,9 +111,9 @@ export default function App() {
                 <p>
                   {MODE_LABEL[headline.mode]}. On time in{" "}
                   <span className="font-mono text-safe">
-                    {headline.on_time_scenarios} of {headline.total_scenarios}
+                    {headline.on_time_scenarios.toLocaleString()} of {headline.total_scenarios.toLocaleString()}
                   </span>{" "}
-                  simulated mornings ({pct(headline.p_on_time)}).
+                  simulated journeys ({pct(headline.p_on_time)}).
                 </p>
               ) : data ? (
                 <p>
@@ -140,9 +140,9 @@ export default function App() {
               <CardContent className="text-sm text-muted-foreground">
                 Both plans fail together in{" "}
                 <span className="font-mono text-risk">
-                  {data.hedge.both_late_scenarios} of {data.hedge.total_scenarios}
+                  {data.hedge.both_late_scenarios.toLocaleString()} of {data.hedge.total_scenarios.toLocaleString()}
                 </span>{" "}
-                simulated mornings.
+                simulated journeys.
               </CardContent>
             </Card>
           )}

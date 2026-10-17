@@ -16,6 +16,7 @@ export interface Weights {
 export interface Constraints {
   step_free: boolean
   max_walk_m: number
+  max_bike_m: number
   has_luggage: boolean
   has_car: boolean
 }

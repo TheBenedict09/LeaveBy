@@ -17,7 +17,7 @@ class ModeSummary:
     arrival_p05: int
     arrival_p50: int
     arrival_p95: int
-    on_time_scenarios: int  # counted over the same scenarios drawn as dots (noise draw 0)
+    on_time_scenarios: int  # counted over every scenario (ensemble member x noise draw), so it agrees with p_on_time.
     total_scenarios: int
     cliff: list[tuple[int, float]]  # (departure ts, P(on time)) for the whole grid
     scenario_arrivals: list[int]  # one arrival ts per ensemble member, for the raincloud dots
@@ -55,8 +55,8 @@ def summarise(sim: SimResult, deadline_ts: int, confidence: float) -> ModeSummar
         arrival_p05=int(round(q05)),
         arrival_p50=int(round(q50)),
         arrival_p95=int(round(q95)),
-        on_time_scenarios=int((dots <= deadline_ts).sum()),
-        total_scenarios=int(dots.size),
+        on_time_scenarios=int((arr <= deadline_ts).sum()),
+        total_scenarios=int(arr.size),
         cliff=[(int(t), float(x)) for t, x in zip(sim.departures, p, strict=True)],
         scenario_arrivals=[int(round(x)) for x in dots],
         ref_index=ref,

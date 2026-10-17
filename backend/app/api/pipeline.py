@@ -95,6 +95,7 @@ def to_problem(req: RecommendationRequest, deadline_ts: int) -> Problem:
         weights=req.weights.model_dump(),
         step_free=c.step_free,
         max_walk_m=c.max_walk_m,
+        max_bike_m=c.max_bike_m,
         has_luggage=c.has_luggage,
         has_car=c.has_car,
         hedge=req.options.hedge,
@@ -194,7 +195,14 @@ def rescore(rec: Record, body: RescoreRequest) -> Record:
         p = replace(p, weights=body.weights.model_dump())
     if body.constraints is not None:
         c = body.constraints
-        p = replace(p, step_free=c.step_free, max_walk_m=c.max_walk_m, has_luggage=c.has_luggage, has_car=c.has_car)
+        p = replace(
+            p,
+            step_free=c.step_free,
+            max_walk_m=c.max_walk_m,
+            max_bike_m=c.max_bike_m,
+            has_luggage=c.has_luggage,
+            has_car=c.has_car,
+        )
     if body.options is not None:
         p = replace(p, hedge=body.options.hedge)
     return replace(rec, problem=p, decision=decide(rec.sim, p))

@@ -60,6 +60,7 @@ class Problem:
     weights: dict[str, float]
     step_free: bool = False
     max_walk_m: int = 1200
+    max_bike_m: int = 25000
     has_luggage: bool = False
     has_car: bool = False
     hedge: bool = True
@@ -130,6 +131,8 @@ def _infeasible_reason(mode: str, s: ModeSummary, f: ModeFacts, p: Problem) -> s
         return "No car available"
     if mode == "walk" and f.distance_m > p.max_walk_m:
         return "Further than your walking limit"
+    if mode == "bike" and f.distance_m > p.max_bike_m:
+        return "Further than your cycling limit"
     if p.step_free and not f.step_free:
         return "No step-free route"
     if not s.feasible:
