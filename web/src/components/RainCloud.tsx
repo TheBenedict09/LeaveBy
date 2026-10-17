@@ -4,7 +4,7 @@ import { scaleLinear, scaleTime } from "d3-scale"
 import { area, curveBasis } from "d3-shape"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { fmtTime, MODE_LABEL, pct } from "@/lib/format"
+import { fmtTime, MODE_LABEL, MODE_NOUN, pct } from "@/lib/format"
 import type { Option } from "@/lib/types"
 
 const W = 720
@@ -117,6 +117,7 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
   const [fallback, setFallback] = useState(false)
   const [ready, setReady] = useState(still) // hover stays off until the rain has landed
   const [hover, setHover] = useState<Hover | null>(null)
+  const [pinned, setPinned] = useState<number | null>(null) // a forecast member, pinned across every option
   const [width, setWidth] = useState(W) // rendered px width, to place the card
 
   const started = still || inView || fallback
@@ -132,6 +133,16 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
     const t = setTimeout(() => setReady(true), 3200)
     return () => clearTimeout(t)
   }, [started, still])
+
+  // Hovering a dot or pinning one picks a forecast member; scenario_arrivals are index-aligned by member.
+  const member = pinned ?? hover?.dot ?? null
+
+  useEffect(() => {
+    if (pinned === null) return
+    const unpin = (e: KeyboardEvent) => e.key === "Escape" && setPinned(null)
+    window.addEventListener("keydown", unpin)
+    return () => window.removeEventListener("keydown", unpin)
+  }, [pinned])
 
   const dl = new Date(deadline).getTime()
   const all = rows.flatMap((o) => o.scenario_arrivals.map((t) => new Date(t).getTime()))
@@ -256,14 +267,18 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
 
         {data.map(({ o, xs, base, cloud, cys }, r) => {
           const [p05, p50, p95] = [o.arrival.p05, o.arrival.p50, o.arrival.p95].map((t) => x(new Date(t)))
-          const focused = hover?.row === r
+          const focused = hover?.row === r && member === null
           const delay = (i: number) =>
             r * ROW_GAP +
             hash(i, r) * SPREAD +
             ((x(xs[i]) - PAD.left) / (W - PAD.left - PAD.right)) * SWEEP +
             Math.min(xs.slice(0, i).filter((u) => Math.abs(x(u) - x(xs[i])) < 3).length * COLUMN_STAGGER, COLUMN_MAX)
           return (
-            <g key={o.mode} opacity={hover && !focused ? 0.55 : 1} style={{ transition: ease && "opacity 150ms" }}>
+            <g
+              key={o.mode}
+              opacity={hover && !focused && member === null ? 0.55 : 1}
+              style={{ transition: ease && "opacity 150ms" }}
+            >
               <text
                 x={PAD.left - 12}
                 y={base}
@@ -301,7 +316,7 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
                 <line x1={p50} x2={p50} y1={base + 3} y2={base + 13} className="stroke-foreground" strokeWidth={2} />
               </motion.g>
               {xs.map((t, i) => {
-                const on = focused && hover?.dot === i
+                const on = member === i // the same forecast member lights up in every option's row
                 const late = t > dl
                 return (
                   <motion.circle
@@ -311,7 +326,7 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
                     r={on ? 5 : 2.5}
                     className={`${late ? "fill-risk stroke-risk/40" : "fill-safe stroke-safe/40"}`}
                     strokeWidth={on ? 6 : 0}
-                    opacity={focused && hover?.dot !== null && !on ? 0.35 : 0.9}
+                    opacity={member !== null && !on ? 0.3 : 0.9}
                     style={{ transition: ease, paintOrder: "stroke" }}
                     variants={{
                       hidden: { y: -cys[i], opacity: 0 },
@@ -333,6 +348,8 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
                     cy={cys[i]}
                     r={6}
                     fill="transparent"
+                    className="cursor-pointer"
+                    onClick={() => setPinned((p) => (p === i ? null : i))}
                     onPointerEnter={(e) => {
                       timeAt(e)
                       setHover({ row: r, t, dot: i })
@@ -360,6 +377,26 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
         </text>
       </motion.svg>
       {card}
+      <p className="mt-1 min-h-10 text-xs text-muted-foreground" aria-live="polite">
+        {member === null ? (
+          "Hover a dot to see that morning's weather across every option; click to pin it."
+        ) : (
+          <>
+            <span className="text-foreground">
+              Morning {member + 1} of {data[0].xs.length}
+              {pinned !== null && " (pinned, click it again or press Escape to unpin)"}:
+            </span>{" "}
+            {data
+              .map(({ o, xs }) => {
+                const t = xs[member]
+                const late = Math.round((t - dl) / 60_000)
+                return `${MODE_NOUN[o.mode]} arrives ${fmtTime(new Date(t).toISOString())}${late > 0 ? `, ${late} min late` : ""}`
+              })
+              .join("; ")}
+            .
+          </>
+        )}
+      </p>
     </div>
   )
 }

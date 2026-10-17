@@ -10,6 +10,7 @@ import { TradeOff } from "@/components/TradeOff"
 import { SourcesDrawer } from "@/components/SourcesDrawer"
 import { TrafficLine } from "@/components/TrafficLine"
 import { VerdictStats } from "@/components/VerdictStats"
+import { LeaveLater } from "@/components/LeaveLater"
 import { Priorities } from "@/components/Priorities"
 import { DEFAULT_WEIGHTS, savedVsDriving, shares } from "@/lib/priorities"
 import { ApiFailure, createRecommendation, rescore } from "@/lib/api"
@@ -239,6 +240,25 @@ export default function App() {
               </CardHeader>
               <CardContent>
                 <Priorities value={weights} onChange={prioritise} />
+              </CardContent>
+            </Card>
+          )}
+
+          {data && headline && result && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">What if I leave later?</CardTitle>
+                <CardDescription>
+                  Slide to see how your chances change. Uses the same simulated mornings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LeaveLater
+                  key={`${result.runId}-${headline.leave_at}`}
+                  options={data.options}
+                  leaveAt={headline.leave_at}
+                  confidence={result.confidence / 100}
+                />
               </CardContent>
             </Card>
           )}
