@@ -177,3 +177,51 @@ body {
   background-image: radial-gradient(60rem 30rem at 50% -10%, rgb(110 168 255 / 0.1), transparent 70%);
   background-attachment: fixed;
 }
+/* Hero card: a soft rain glow behind it and a slow light sweeping round its border. Still under reduced motion. */
+@property --beam-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.hero-card {
+  position: relative;
+  isolation: isolate;
+}
+
+.hero-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--beam-angle), transparent 0 70%, var(--rain) 85%, transparent 100%);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: beam 9s linear infinite;
+  pointer-events: none;
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 10% 5% -5%;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(closest-side, rgb(110 168 255 / 0.18), transparent);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+@keyframes beam {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-card::before {
+    animation: none;
+  }
+}
