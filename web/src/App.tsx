@@ -124,7 +124,7 @@ export default function App() {
 
       <main className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[1fr_320px]">
         <section className="flex flex-col gap-6" aria-label="Recommendation">
-          <Card>
+          <Card className="hero-card overflow-visible bg-card/70 backdrop-blur">
             <CardContent>
               <Composer onSubmit={run} loading={loading} />
             </CardContent>

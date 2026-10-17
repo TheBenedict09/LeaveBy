@@ -1,4 +1,11 @@
-import type { Envelope, Meta, RecommendationData, RecommendationRequest, RescoreRequest } from "@/lib/types"
+import type {
+  Envelope,
+  GeocodeData,
+  Meta,
+  RecommendationData,
+  RecommendationRequest,
+  RescoreRequest,
+} from "@/lib/types"
 
 export class ApiFailure extends Error {
   code: string
@@ -32,4 +39,9 @@ export function rescore(id: string, req: RescoreRequest) {
     method: "POST",
     body: JSON.stringify(req),
   })
+}
+
+/** Place search. Falls back to a built-in UK list on the server when the geocoder is down (meta.degraded). */
+export function searchPlaces(q: string, limit: number) {
+  return call<GeocodeData>(`/v1/geocode?${new URLSearchParams({ q, limit: String(limit) })}`)
 }

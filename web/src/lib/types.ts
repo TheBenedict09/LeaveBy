@@ -6,6 +6,10 @@ export interface Place {
   lon: number
 }
 
+export interface GeocodeData {
+  places: Place[]
+}
+
 export interface Weights {
   time: number
   cost: number
