@@ -67,6 +67,17 @@ export interface Option {
   cliff: { leave: string; p_on_time: number }[]
   scenario_arrivals: string[]
   provenance: string[]
+  service?: TrainService | null
+}
+
+/** The real train behind a leave-by time, when the timetable covers the trip. */
+export interface TrainService {
+  depart_at: string
+  arrive_at: string
+  operator: string
+  headsign: string
+  from_station: string
+  to_station: string
 }
 
 export interface Hedge {
@@ -101,7 +112,7 @@ export interface Warning {
 
 export interface SourceMeta {
   id: string
-  kind: "live" | "mock" | "cached" | "estimated"
+  kind: "live" | "static" | "mock" | "cached" | "estimated"
   fetched_at: string
   age_s: number
   latency_ms?: number | null

@@ -454,6 +454,10 @@ components:
           - type: number
           - type: 'null'
           title: Score
+        service:
+          anyOf:
+          - $ref: '#/components/schemas/TrainService'
+          - type: 'null'
         total_scenarios:
           minimum: 1.0
           title: Total Scenarios
@@ -638,6 +642,7 @@ components:
         kind:
           enum:
           - live
+          - static
           - mock
           - cached
           - estimated
@@ -678,6 +683,7 @@ components:
         kind:
           enum:
           - live
+          - static
           - mock
           - cached
           - estimated
@@ -710,6 +716,38 @@ components:
       required:
       - sources
       title: SourcesData
+      type: object
+    TrainService:
+      additionalProperties: false
+      properties:
+        arrive_at:
+          format: date-time
+          title: Arrive At
+          type: string
+        depart_at:
+          format: date-time
+          title: Depart At
+          type: string
+        from_station:
+          title: From Station
+          type: string
+        headsign:
+          title: Headsign
+          type: string
+        operator:
+          title: Operator
+          type: string
+        to_station:
+          title: To Station
+          type: string
+      required:
+      - depart_at
+      - arrive_at
+      - operator
+      - headsign
+      - from_station
+      - to_station
+      title: TrainService
       type: object
     ValidationError:
       properties:

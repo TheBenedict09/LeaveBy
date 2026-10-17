@@ -5,6 +5,7 @@ import type { Meta, Option } from "@/lib/types"
 // What each non-live source feeds, in words people understand.
 const SOURCE_LABEL: Record<string, string> = {
   "mock-rail": "train times and delays",
+  "mock-rail-delays": "train delays (the timetable itself is real)",
   "mock-fares": "fares and running costs",
   "mock-emissions": "CO2e per km",
   "mock-accessibility": "access score",
@@ -32,6 +33,7 @@ export function VerdictStats({ option, meta }: { option: Option; meta: Meta }) {
           </TooltipTrigger>
           <TooltipContent className="max-w-64">
             Not live yet: {estimated.map((id) => SOURCE_LABEL[id] ?? id).join(", ")}.
+            {option.provenance.includes("rdg-timetable") && " Timetable: real, Rail Delivery Group (static file)."}
           </TooltipContent>
         </Tooltip>
       )}

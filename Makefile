@@ -1,4 +1,4 @@
-.PHONY: dev test lint fmt openapi web
+.PHONY: dev test lint fmt openapi web rail-data
 dev:
 	cd backend && uvicorn app.main:app --reload --port 8000
 
@@ -13,3 +13,6 @@ fmt:
 
 openapi:
 	python scripts/export_openapi.py
+
+rail-data:
+	python scripts/build_rail_timetable.py

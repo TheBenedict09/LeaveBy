@@ -37,8 +37,10 @@ walk:
   k_rain: 0.02
   rain_cap: 0.15
 
-rail:                    # MOCK rail model (blueprint 5.4): generated timetable, simulated delays, no live feed
-  headway_min: 15
+rail:                    # Real GB timetable where we have it (data/rail_timetable.json), else a generated one.
+                         # Delays are always SIMULATED (blueprint 5.4), calibrated to published punctuality.
+  station_radius_m: 3000 # use the real timetable only if both ends are this close to a timetable station
+  headway_min: 15        # generated timetable only
   # Average scheduled speed by trip length, linear in between and flat beyond the ends. Short trips stop
   # more often, so they average less. Rail distance is approximated by the road distance.
   speed_table_km_kmh: [[20, 50], [80, 90], [250, 92], [600, 135]]
@@ -49,7 +51,13 @@ rail:                    # MOCK rail model (blueprint 5.4): generated timetable,
   last_departure: "23:30"
   access_min: 12         # door to platform
   egress_min: 8          # platform to destination
-  p_on_time_base: 0.88   # chance a train runs without a delay
+  # Calibration: in calm weather, P(arrive within 5 min of schedule) should be the published PPM. With the
+  # lognormal below, P(delay <= 5 min | delayed) = 0.410, so p_on_time_base = (0.865 - 0.410) / (1 - 0.410).
+  calm_within_5min_target: 0.865
+  calm_target_sources:
+    - "Edinburgh-Glasgow PPM 89.1, 86.6, 85.6, 84.8% (years to Mar 2017-2020): https://www.gov.scot/publications/foi-202100260453/"
+    - "National on time within 3 min 85.0% (Apr-Jun 2026): https://dataportal.orr.gov.uk/statistics/performance/passenger-rail-performance/"
+  p_on_time_base: 0.771  # chance a train runs without a delay
   delay_median_min: 6
   delay_sigma: 0.8       # lognormal spread of delay length
   delay_cap_min: 45

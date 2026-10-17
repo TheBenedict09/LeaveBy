@@ -9,7 +9,8 @@ from app.adapters.weather import WeatherEnsemble
 from app.core.config import ModelConfig
 from app.core.mockdata import MockData
 from app.decision.hedge import Hedge, choose_hedge
-from app.decision.rail_mock import make_rail_noise, simulate_train, train_departures
+from app.decision.rail_mock import make_rail_noise, simulate_scheduled, simulate_train, train_departures
+from app.decision.rail_timetable import Schedule, scheduled_departures
 from app.decision.scoring import (
     FlipPoint,
     composite,
@@ -52,6 +53,9 @@ class Simulation:
     sims: dict[str, SimResult]
     facts: dict[str, ModeFacts]
     train_cut_early: bool = False  # the deadline needs a train earlier than the first one of the day
+    train_no_service: bool = False  # the real timetable has no direct train on that day
+    # Real timetable only: (depart_ts, arrive_ts, operator, headsign, from station, to station) per simulated train.
+    train_services: tuple[tuple[int, int, str, str, str, str], ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -108,8 +112,10 @@ def simulate_all(
     seed: int,
     cfg: ModelConfig,
     data: MockData,
+    schedule: Schedule | None = None,
 ) -> Simulation:
-    """routes needs walk, bike and drive. Rail (mock) reuses the drive distance as its distance."""
+    """routes needs walk, bike and drive. Trains run to the real schedule when one is given, else to a generated
+    timetable; either way rail reuses the drive distance for cost and carbon, and delays are simulated."""
     n_members, n_draws = weather.n_members, cfg.noise.n_draws
     z = make_noise(seed, n_members, n_draws)  # shared by every mode
     sims: dict[str, SimResult] = {}
@@ -120,10 +126,23 @@ def simulate_all(
         sims[mode] = simulate(mode, r.duration_s, r.bearing_deg, weather, deps, z, cfg)
         facts[mode] = _facts(mode, r.distance_m, data)
     rail_m = routes["drive"].distance_m
-    deps, cut_early = train_departures(deadline_ts, rail_m, cfg)
-    sims["train"] = simulate_train(rail_m, weather, deps, make_rail_noise(seed, n_members, n_draws), cfg)
+    noise = make_rail_noise(seed, n_members, n_draws)
+    services = None
+    if schedule is not None and schedule.deps.size:
+        idx, cut_early = scheduled_departures(schedule, deadline_ts, cfg)
+        ride_s = (schedule.arrs - schedule.deps)[idx].astype(float)
+        sims["train"] = simulate_scheduled(ride_s, weather, schedule.deps[idx], noise, cfg)
+        s = schedule
+        services = tuple(
+            (int(s.deps[i]), int(s.arrs[i]), s.operators[i], s.headsigns[i], s.from_names[i], s.to_names[i])
+            for i in idx
+        )
+    else:  # no usable schedule: the generated timetable keeps the option's shape (and is overruled if no service)
+        deps, cut_early = train_departures(deadline_ts, rail_m, cfg)
+        sims["train"] = simulate_train(rail_m, weather, deps, noise, cfg)
     facts["train"] = _facts("train", rail_m, data)
-    return Simulation(deadline_ts, seed, n_members, n_draws, sims, facts, cut_early)
+    no_service = schedule is not None and not schedule.deps.size
+    return Simulation(deadline_ts, seed, n_members, n_draws, sims, facts, cut_early, no_service, services)
 
 
 def _infeasible_reason(mode: str, s: ModeSummary, f: ModeFacts, p: Problem) -> str | None:
@@ -155,7 +174,10 @@ def decide(sim: Simulation, problem: Problem) -> Decision:
     w = normalise_weights(problem.weights)
     summaries = {m: summarise(sim.sims[m], sim.deadline_ts, problem.confidence) for m in MODES}
     reasons = {m: _infeasible_reason(m, summaries[m], sim.facts[m], problem) for m in MODES}
-    if sim.train_cut_early and (reasons["train"] or "").startswith("Cannot reach"):
+    soft = reasons["train"] is None or reasons["train"].startswith("Cannot reach")  # hard constraints win
+    if sim.train_no_service and soft:
+        reasons["train"] = "No direct train runs that day"
+    elif sim.train_cut_early and reasons["train"] and soft:
         reasons["train"] = "No train runs early enough"
     feasible = [m for m in MODES if reasons[m] is None]
 

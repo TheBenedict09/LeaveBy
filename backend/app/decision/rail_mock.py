@@ -74,8 +74,21 @@ def simulate_train(
     rail_noise: tuple[np.ndarray, np.ndarray],
     cfg: ModelConfig,
 ) -> SimResult:
+    """Generated timetable: every train takes the same scheduled time for the distance."""
+    _, ride_s, _ = rail_times(distance_m, cfg)
+    return simulate_scheduled(np.full(len(train_deps), ride_s), weather, train_deps, rail_noise, cfg)
+
+
+def simulate_scheduled(
+    ride_s: np.ndarray,
+    weather: WeatherEnsemble,
+    train_deps: np.ndarray,
+    rail_noise: tuple[np.ndarray, np.ndarray],
+    cfg: ModelConfig,
+) -> SimResult:
+    """Any timetable, real or generated: ride_s (D,) is each train's scheduled platform-to-platform time."""
     r = cfg.rail
-    access_s, ride_s, egress_s = rail_times(distance_m, cfg)
+    access_s, egress_s = r.access_min * 60.0, r.egress_min * 60.0
     u, z = rail_noise
     if u.shape[0] != weather.n_members:
         raise ValueError("rail noise and weather ensemble must have the same number of members")
@@ -86,6 +99,6 @@ def simulate_train(
     )
     delayed = u[None, :, :] < p_delay.T[:, :, None]  # (D, M, K)
     delay_s = np.minimum(r.delay_median_min * 60.0 * np.exp(r.delay_sigma * z), r.delay_cap_min * 60.0)  # (M, K)
-    durations = access_s + ride_s + egress_s + np.where(delayed, delay_s[None, :, :], 0.0)
+    durations = (access_s + ride_s + egress_s)[:, None, None] + np.where(delayed, delay_s[None, :, :], 0.0)
     leave_home = train_deps - int(round(access_s))
     return SimResult("train", leave_home.astype(np.int64), durations)
