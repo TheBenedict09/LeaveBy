@@ -76,6 +76,10 @@ def test_happy_path_returns_a_ranked_decision_with_provenance(client, valid_requ
     assert walk["rank"] is None and walk["leave_by"] is None
     train = mode(data, "train")
     assert "rdg-timetable" in train["provenance"] and "mock-rail" not in train["provenance"]
+    assert all("desnz-ghg-2026" in o["provenance"] and "mock-emissions" not in o["provenance"] for o in data["options"])
+    assert kinds["desnz-ghg-2026"] == "static"
+    drive = mode(data, "drive")  # official factors: a car emits about 5.4 times more per km than a train
+    assert drive["co2e_kg"] / train["co2e_kg"] == pytest.approx(0.16590 / 0.03092, rel=1e-6)
     if train["feasible"]:
         svc = train["service"]
         assert svc["from_station"].startswith("Glasgow") and svc["to_station"] == "Edinburgh"

@@ -64,3 +64,11 @@ rail:                    # Real GB timetable where we have it (data/rail_timetab
   gust_threshold_ms: 15.0
   k_gust: 0.02           # extra delay probability per m/s of gust above the threshold
   max_delay_prob: 0.9
+
+emissions:               # REAL: UK Government GHG conversion factors 2026 (DESNZ, published June 2026)
+  source: "UK Government GHG conversion factors for company reporting 2026 (DESNZ)"
+  url: "https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026"
+  licence: "Open Government Licence v3.0"
+  # kg CO2e per km travelled by one person. Car: 'Average car, unknown fuel' 0.26699 kg/mile / 1.609344,
+  # one occupant. Train: 'National rail' per passenger km, applied to the road distance (a close proxy).
+  kg_co2e_per_km: { walk: 0.0, bike: 0.0, drive: 0.16590, train: 0.03092 }

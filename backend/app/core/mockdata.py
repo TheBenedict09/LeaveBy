@@ -29,7 +29,6 @@ class MockData(_M):
     kind: Literal["mock"]
     note: str
     fares: Fares
-    emissions_kg_per_km: dict[str, float]
     accessibility: dict[str, Access]
 
 

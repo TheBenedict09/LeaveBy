@@ -40,7 +40,6 @@ MOCK_SOURCES = {
     "mock-rail-delays": "Simulated, calibrated to published punctuality",
     "mock-fares": "Simulated data",
     "mock-accessibility": "Simulated data",
-    "mock-emissions": "Placeholder values, replace with official factors",
 }
 REGISTRY = [
     SourceInfo(
@@ -65,6 +64,13 @@ REGISTRY = [
         attribution="Geocoding by Open-Meteo.com",
     ),
     SourceInfo(
+        id="desnz-ghg-2026",
+        kind="static",
+        role="Carbon per km (UK Government GHG conversion factors 2026)",
+        licence="Open Government Licence v3.0",
+        attribution="Contains public sector information licensed under the Open Government Licence v3.0 (DESNZ)",
+    ),
+    SourceInfo(
         id="rdg-timetable",
         kind="static",
         role="Train timetable (real scheduled trains, static file)",
@@ -78,7 +84,6 @@ REGISTRY = [
             ("mock-rail-delays", "Train delays", MOCK_SOURCES["mock-rail-delays"]),
             ("mock-fares", "Fares and running costs", MOCK_SOURCES["mock-fares"]),
             ("mock-accessibility", "Step-free access and effort", MOCK_SOURCES["mock-accessibility"]),
-            ("mock-emissions", "Carbon per km", MOCK_SOURCES["mock-emissions"]),
         ]
     ],
 ]
@@ -189,6 +194,8 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
             warnings.append({"code": "TIMETABLE_OUT_OF_RANGE", "message": msg})
     sim = simulate_all(routes, weather, deadline_ts, seed, services.cfg, services.data, schedule)
     problem = to_problem(req, deadline_ts)
+    licence = services.cfg.emissions.licence
+    sources.append(SourceMeta(id="desnz-ghg-2026", kind="static", fetched_at=now, age_s=0, licence=licence))
     if schedule is not None:
         assert services.timetable is not None
         sources.append(
@@ -253,7 +260,7 @@ def _provenance(mode: str, rec: Record) -> list[str]:
         ids += ["rdg-timetable", "mock-rail-delays"] if real else ["mock-rail"]
     if mode in ("train", "drive"):
         ids.append("mock-fares")
-    return [*ids, "mock-emissions", "mock-accessibility"]
+    return [*ids, "desnz-ghg-2026", "mock-accessibility"]
 
 
 def _option_out(o: OptionResult, rec: Record) -> OptionOut:
