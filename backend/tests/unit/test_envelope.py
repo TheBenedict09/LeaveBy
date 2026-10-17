@@ -5,7 +5,7 @@ from app.api import envelope
 
 
 def test_health(client):
-    assert client.get("/healthz").json() == {"status": "ok"}
+    assert client.get("/healthz").json() == {"status": "ok", "demo": False}
 
 
 def test_validation_error_uses_envelope(client, valid_request):

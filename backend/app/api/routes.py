@@ -26,8 +26,8 @@ def _ok(request: Request, data: Any, **meta: Any) -> dict[str, Any]:
 
 
 @router.get("/healthz", include_in_schema=False)
-def healthz() -> dict[str, str]:
-    return {"status": "ok"}
+def healthz(services: Services = Depends(get_services)) -> dict[str, Any]:  # noqa: B008
+    return {"status": "ok", "demo": services.recorded_at is not None}
 
 
 @router.get("/readyz", include_in_schema=False)

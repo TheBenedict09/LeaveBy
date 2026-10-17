@@ -38,6 +38,7 @@ const API_DOT: Record<ApiState, string> = {
 
 export default function App() {
   const [api, setApi] = useState<ApiState>("checking")
+  const [demo, setDemo] = useState(false) // the API is replaying recorded responses (DEMO_FIXTURES=1)
   const [confidence, setConfidence] = useState([95])
   const [weights, setWeights] = useState<Weights>(DEFAULT_WEIGHTS)
   const [picked, setPicked] = useState<Mode | null>(null) // option shown on the map; null = the recommendation
@@ -57,7 +58,10 @@ export default function App() {
 
   useEffect(() => {
     fetch("/healthz")
-      .then((r) => setApi(r.ok ? "up" : "down"))
+      .then(async (r) => {
+        setApi(r.ok ? "up" : "down")
+        setDemo(Boolean((await r.json().catch(() => null))?.demo))
+      })
       .catch(() => setApi("down"))
   }, [])
 
@@ -153,10 +157,21 @@ export default function App() {
             <span className="text-lg font-semibold tracking-tight">LeaveBy</span>
             <span className="hidden text-sm text-muted-foreground sm:inline">One app. One clear decision.</span>
           </div>
-          <Badge variant="outline" className="gap-2 font-mono text-xs" role="status">
-            <span className={`size-2 rounded-full ${API_DOT[api]}`} aria-hidden />
-            {API_LABEL[api]}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {demo && (
+              <Badge
+                variant="outline"
+                className="border-deadline/60 text-xs text-deadline"
+                title="Every provider answer is a recording; nothing is live"
+              >
+                Offline demo mode
+              </Badge>
+            )}
+            <Badge variant="outline" className="gap-2 font-mono text-xs" role="status">
+              <span className={`size-2 rounded-full ${API_DOT[api]}`} aria-hidden />
+              {API_LABEL[api]}
+            </Badge>
+          </div>
         </div>
       </header>
 
