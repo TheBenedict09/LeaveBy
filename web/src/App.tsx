@@ -266,7 +266,7 @@ export default function App() {
                 <CardTitle className="text-base">All options</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <TradeOff options={data.options} />
+                <TradeOff options={data.options} confidence={(result?.confidence ?? 95) / 100} />
                 <ul className="divide-y divide-border/60">
                   {data.options.map((o) => (
                     <motion.li

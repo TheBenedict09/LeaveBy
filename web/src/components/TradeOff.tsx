@@ -8,16 +8,17 @@ const W = 720
 const H = 240
 const PAD = { top: 20, right: 28, bottom: 34, left: 52 }
 
-/** Late in 3% or fewer of journeys is low risk, up to 8% medium, more is high. */
-function risk(p: number): { label: string; fill: string } {
+/** Green means late no more often than the user said they accept (1 - confidence); amber up to twice that. */
+function risk(p: number, confidence: number): { label: string; fill: string } {
   const late = 1 - p
-  if (late <= 0.03) return { label: "low", fill: "fill-safe" }
-  if (late <= 0.08) return { label: "medium", fill: "fill-deadline" }
+  const ok = 1 - confidence + 1e-9
+  if (late <= ok) return { label: "within your tolerance", fill: "fill-safe" }
+  if (late <= 2 * ok) return { label: "medium", fill: "fill-deadline" }
   return { label: "high", fill: "fill-risk" }
 }
 
 /** Every option you can rely on: when you must leave (x) against CO2e (y), sized by cost, coloured by risk. */
-export function TradeOff({ options }: { options: Option[] }) {
+export function TradeOff({ options, confidence }: { options: Option[]; confidence: number }) {
   const still = useReducedMotion() ?? false
   const [active, setActive] = useState<string | null>(null)
   const rows = options.filter((o) => o.feasible && o.leave_by)
@@ -112,7 +113,7 @@ export function TradeOff({ options }: { options: Option[] }) {
                 initial={false}
                 animate={{ cx, cy, r: rad }}
                 transition={spring}
-                className={`${risk(o.p_on_time).fill} ${active && active !== o.mode ? "opacity-40" : "opacity-85"}`}
+                className={`${risk(o.p_on_time, confidence).fill} ${active && active !== o.mode ? "opacity-40" : "opacity-85"}`}
               />
               <motion.text
                 initial={false}
@@ -136,7 +137,7 @@ export function TradeOff({ options }: { options: Option[] }) {
           <p className="font-medium text-foreground">{MODE_LABEL[shown.mode]}</p>
           <p className="text-muted-foreground">
             Leave by <span className="font-mono text-foreground">{fmtTime(shown.leave_by!)}</span> ·{" "}
-            {pct(shown.p_on_time)} on time ({risk(shown.p_on_time).label} risk)
+            {pct(shown.p_on_time)} on time (risk: {risk(shown.p_on_time, confidence).label})
           </p>
           <p className="text-muted-foreground">
             £{shown.cost_gbp.toFixed(2)} · {shown.co2e_kg.toFixed(1)} kg CO2e · access{" "}
@@ -145,8 +146,8 @@ export function TradeOff({ options }: { options: Option[] }) {
         </div>
       )}
       <p className="mt-1 text-xs text-muted-foreground">
-        Bubble size is cost. Colour is risk of being late: mint low, amber medium, coral high. Options that cannot meet
-        your confidence are left out.
+        Bubble size is cost. Colour is how often it is late: mint within the {Math.round((1 - confidence) * 100)}% you
+        accept, amber up to twice that, coral more. Options that cannot meet your confidence are left out.
       </p>
     </div>
   )
