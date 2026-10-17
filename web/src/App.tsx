@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { CloudRain, Leaf } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { CalendarButton } from "@/components/CalendarButton"
+import { Journey } from "@/components/Journey"
 import { Composer } from "@/components/Composer"
 import { RainCloud } from "@/components/RainCloud"
 import { TradeOff } from "@/components/TradeOff"
@@ -16,7 +17,9 @@ import { Priorities } from "@/components/Priorities"
 import { DEFAULT_WEIGHTS, savedVsDriving, shares } from "@/lib/priorities"
 import { ApiFailure, createRecommendation, rescore } from "@/lib/api"
 import { arriveByIso, fmtTime, MODE_LABEL, pct } from "@/lib/format"
-import type { ComposerValue, Meta, RecommendationData, Weights } from "@/lib/types"
+import type { ComposerValue, Meta, Mode, RecommendationData, Weights } from "@/lib/types"
+
+const RouteMap = lazy(() => import("@/components/RouteMap")) // maplibre is large: load it only with a result
 
 type ApiState = "checking" | "up" | "down"
 
@@ -36,6 +39,7 @@ export default function App() {
   const [api, setApi] = useState<ApiState>("checking")
   const [confidence, setConfidence] = useState([95])
   const [weights, setWeights] = useState<Weights>(DEFAULT_WEIGHTS)
+  const [picked, setPicked] = useState<Mode | null>(null) // option shown on the map; null = the recommendation
   // runId changes only on a new search, so rescoring never replays the chart intro or scrolls.
   const [result, setResult] = useState<{
     data: RecommendationData
@@ -59,6 +63,7 @@ export default function App() {
   async function run(v: ComposerValue) {
     clearTimeout(timer.current)
     const n = ++latest.current
+    setPicked(null)
     setUpdating(false)
     setLoading(true)
     setError(null)
@@ -129,6 +134,9 @@ export default function App() {
   const saved = winner && data ? savedVsDriving(winner, data.options) : null
   const ranked = data ? data.options.filter((o) => o.rank !== null).length : 0
   const still = useReducedMotion() ?? false
+  const pickedOption = data?.options.find((o) => o.mode === picked && o.feasible)
+  const shown = pickedOption ?? winner
+  const backupOption = data?.hedge ? data.options.find((o) => o.mode === data.hedge?.backup_mode) : undefined
 
   return (
     <div className="min-h-screen">
@@ -236,6 +244,49 @@ export default function App() {
             </CardContent>
           </Card>
 
+          {data?.route && shown && result && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Your route{" "}
+                  {shown !== winner && <span className="text-muted-foreground">({MODE_LABEL[shown.mode]})</span>}
+                </CardTitle>
+                <CardDescription>
+                  {shown === winner
+                    ? "The recommended option, door to door. Pick another option below to compare."
+                    : "Showing the option you picked. "}
+                  {shown !== winner && (
+                    <button
+                      type="button"
+                      className="text-rain underline-offset-2 hover:underline"
+                      onClick={() => setPicked(null)}
+                    >
+                      Back to the recommendation
+                    </button>
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6 lg:grid-cols-[1fr_15rem]">
+                <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-secondary/40 sm:h-80" />}>
+                  <RouteMap
+                    key={result.runId}
+                    route={data.route}
+                    mode={shown.mode}
+                    service={shown.service}
+                    still={still}
+                  />
+                </Suspense>
+                <Journey
+                  option={shown}
+                  backup={shown === winner ? data.hedge : null}
+                  backupOption={backupOption}
+                  deadline={result.arriveBy}
+                  traffic={data.traffic}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {data && (
             <Card>
               <CardHeader>
@@ -303,14 +354,21 @@ export default function App() {
                       transition={{ type: "spring", stiffness: 400, damping: 35 }}
                       className="flex items-center justify-between gap-4 py-2 text-sm"
                     >
-                      <span className="flex items-center gap-2 font-medium">
+                      <button
+                        type="button"
+                        disabled={!o.feasible}
+                        aria-pressed={shown?.mode === o.mode}
+                        aria-label={o.feasible ? `Show ${MODE_LABEL[o.mode]} on the map` : undefined}
+                        onClick={() => setPicked(o.mode)}
+                        className={`flex items-center gap-2 rounded-md px-1 font-medium ${o.feasible ? "hover:text-rain" : "cursor-default"} ${shown?.mode === o.mode ? "text-rain" : ""}`}
+                      >
                         <span
                           className={`grid size-5 place-items-center rounded-full font-mono text-xs ${o.rank === 1 ? "bg-rain text-background" : "bg-secondary text-muted-foreground"}`}
                         >
                           {o.rank ?? "–"}
                         </span>
                         {MODE_LABEL[o.mode]}
-                      </span>
+                      </button>
                       <span className="text-right text-muted-foreground">
                         {o.feasible && o.leave_by
                           ? `leave ${fmtTime(o.leave_by)} · ${pct(o.p_on_time)} on time · £${o.cost_gbp.toFixed(2)}`
