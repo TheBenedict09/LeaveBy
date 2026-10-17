@@ -37,7 +37,10 @@ async def main() -> None:
     out = DEFAULT_DIR
     shutil.rmtree(out, ignore_errors=True)
     services = Services.create(client=httpx.AsyncClient(transport=RecordingTransport(out)))
+    # the next weekday at 09:00, so the recorded car traffic is a working-day morning (the demo uses a weekday)
     tomorrow_9 = (datetime.now(ZoneInfo("Europe/London")) + timedelta(days=1)).replace(hour=9, minute=0, second=0)
+    while tomorrow_9.weekday() >= 5:
+        tomorrow_9 += timedelta(days=1)
     soon = datetime.now(UTC) + timedelta(minutes=90)  # a trip leaving now, so live traffic incidents are recorded
     for dest in ROUTES.values():
         for arrive in (soon, tomorrow_9):  # last write wins: keep tomorrow morning's predicted car traffic
