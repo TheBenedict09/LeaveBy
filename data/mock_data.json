@@ -1,0 +1,21 @@
+{
+  "kind": "mock",
+  "note": "Simulated data for the hackathon, not live. Emission factors are PLACEHOLDERS: replace them with values extracted from the UK Government GHG conversion factors 2026 publication and cite the table.",
+  "fares": {
+    "train_base_gbp": 4.0,
+    "train_per_km_gbp": 0.14,
+    "drive_per_km_gbp": 0.2
+  },
+  "emissions_kg_per_km": {
+    "walk": 0.0,
+    "bike": 0.0,
+    "drive": 0.17,
+    "train": 0.04
+  },
+  "accessibility": {
+    "walk": { "step_free": true, "effort": 0.4, "luggage_factor": 0.4 },
+    "bike": { "step_free": true, "effort": 0.5, "luggage_factor": 0.5 },
+    "drive": { "step_free": true, "effort": 0.9, "luggage_factor": 1.0 },
+    "train": { "step_free": true, "effort": 0.8, "luggage_factor": 0.9 }
+  }
+}
