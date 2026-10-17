@@ -7,9 +7,9 @@ from typing import Generic, Literal, TypeVar
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core import clock
+from app.core.types import SourceMeta
 
 Mode = Literal["walk", "bike", "drive", "train"]
-SourceKind = Literal["live", "mock", "cached", "estimated"]
 
 
 class Strict(BaseModel):
@@ -75,16 +75,6 @@ class RecommendationRequest(Strict):
         if not (now < v <= now + timedelta(days=7)):
             raise ValueError("must be within the next 7 days")
         return v
-
-
-class SourceMeta(Strict):
-    id: str
-    kind: SourceKind
-    fetched_at: datetime
-    age_s: int = Field(ge=0)
-    latency_ms: int | None = None
-    licence: str
-    attribution: str | None = None
 
 
 class Warning(Strict):
