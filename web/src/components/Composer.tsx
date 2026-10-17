@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ArrowRight, ArrowUpDown, CalendarDays, Car, Clock, Loader2, MapPin } from "lucide-react"
+import { ArrowRight, ArrowUpDown, CalendarDays, Car, Clock, Loader2, MapPin, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -50,6 +50,7 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
   const [day, setDay] = useState(0)
   const [time, setTime] = useState("09:00")
   const [hasCar, setHasCar] = useState(false)
+  const [accident, setAccident] = useState(false) // demo only, never on by default
   const same = from !== null && to !== null && metres(from, to) < 300
 
   return (
@@ -57,7 +58,8 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
       className="flex flex-col gap-5"
       onSubmit={(e) => {
         e.preventDefault()
-        if (from && to && !same) onSubmit({ origin: from, destination: to, dayOffset: day + 1, time, hasCar })
+        if (from && to && !same)
+          onSubmit({ origin: from, destination: to, dayOffset: day + 1, time, hasCar, simulateIncident: accident })
       }}
     >
       {/* The route: two stops joined by a line, like a ticket */}
@@ -151,6 +153,17 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
         >
           <Car aria-hidden className="size-4" />I have a car
           <Switch checked={hasCar} onCheckedChange={setHasCar} aria-label="I have a car" />
+        </label>
+        <label
+          className={`${pill} flex cursor-pointer items-center gap-2 border-dashed px-3 text-sm ${accident ? "border-deadline/60 text-deadline" : "text-muted-foreground"}`}
+        >
+          <TriangleAlert aria-hidden className="size-4" />
+          Simulate an accident <span className="text-xs opacity-70">(demo)</span>
+          <Switch
+            checked={accident}
+            onCheckedChange={setAccident}
+            aria-label="Simulate an accident on the car route (demo)"
+          />
         </label>
       </div>
 

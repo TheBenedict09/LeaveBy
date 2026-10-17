@@ -56,6 +56,7 @@ class Options(Strict):
     stress_test: bool = False
     hedge: bool = True
     explain: Literal["template", "llm"] = "template"
+    simulate_incident: bool = False  # DEMO ONLY: add a made-up accident delay to the car; always labelled simulated
 
 
 class RecommendationRequest(Strict):
@@ -185,12 +186,27 @@ class ExplanationOut(Strict):
     flip_points: list[str]
 
 
+class IncidentsOut(Strict):
+    count: int = Field(ge=0)
+    worst_delay_min: float = Field(ge=0)
+    description: str | None
+    simulated: bool  # True only for the demo switch; real incidents come from TomTom
+
+
+class TrafficOut(Strict):
+    basis: Literal["live", "predicted", "free-flow"]  # free-flow: no traffic data (OSRM fallback)
+    car_min: float  # car time used by the model, before weather and traffic noise
+    free_flow_min: float  # OSRM's free-flow car time, for comparison
+    incidents: IncidentsOut | None  # live trips only (or the demo switch)
+
+
 class RecommendationData(Strict):
     recommendation_id: str
     headline: Headline | None  # None when no option can reach the confidence level
     options: list[OptionOut]
     hedge: HedgeOut | None
     explanation: ExplanationOut
+    traffic: TrafficOut | None = None
     assumptions_ref: str = "/v1/assumptions"
 
 

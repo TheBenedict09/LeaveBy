@@ -11,6 +11,7 @@ from fastapi import Request
 from app.adapters.base import USER_AGENT
 from app.adapters.geocode import GeocodeAdapter
 from app.adapters.routing import RoutingAdapter
+from app.adapters.tomtom import TrafficAdapter
 from app.adapters.weather import WeatherAdapter
 from app.core.config import ModelConfig, load_model_config
 from app.core.mockdata import MockData, load_mock_data
@@ -47,6 +48,7 @@ class Services:
     data: MockData
     store: Store = field(default_factory=Store)
     timetable: RailTimetable | None = None  # real GB rail timetable extract, if data/rail_timetable.json exists
+    traffic: TrafficAdapter | None = None  # TomTom, only when TOMTOM_API_KEY is set
 
     @classmethod
     def create(
@@ -62,6 +64,7 @@ class Services:
             cfg=load_model_config(),
             data=load_mock_data(),
             timetable=load_timetable(),
+            traffic=TrafficAdapter(client, key) if (key := os.environ.get("TOMTOM_API_KEY")) else None,
         )
 
 

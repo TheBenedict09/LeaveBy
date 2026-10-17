@@ -72,3 +72,8 @@ emissions:               # REAL: UK Government GHG conversion factors 2026 (DESN
   # kg CO2e per km travelled by one person. Car: 'Average car, unknown fuel' 0.26699 kg/mile / 1.609344,
   # one occupant. Train: 'National rail' per passenger km, applied to the road distance (a close proxy).
   kg_co2e_per_km: { walk: 0.0, bike: 0.0, drive: 0.16590, train: 0.03092 }
+
+traffic:                 # TomTom (only when TOMTOM_API_KEY is set; otherwise free-flow OSRM car times)
+  live_window_h: 2       # trips leaving within this window use live traffic and incidents; later ones use
+                         # TomTom's predicted traffic for that departure time
+  simulated_incident_delay_min: 15  # DEMO ONLY: the 'Simulate an accident' switch adds this to the car

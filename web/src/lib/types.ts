@@ -32,6 +32,7 @@ export interface RecommendationRequest {
   confidence: number
   weights?: Weights
   constraints?: Constraints
+  options?: { simulate_incident?: boolean }
 }
 
 /** Any field left out keeps the value from the original request. */
@@ -102,7 +103,15 @@ export interface RecommendationData {
   options: Option[]
   hedge: Hedge | null
   explanation: Explanation
+  traffic?: Traffic | null
   assumptions_ref: string
+}
+
+export interface Traffic {
+  basis: "live" | "predicted" | "free-flow"
+  car_min: number
+  free_flow_min: number
+  incidents: { count: number; worst_delay_min: number; description: string | null; simulated: boolean } | null
 }
 
 export interface Warning {
@@ -146,4 +155,5 @@ export interface ComposerValue {
   dayOffset: number
   time: string
   hasCar: boolean
+  simulateIncident: boolean // demo only
 }
