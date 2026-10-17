@@ -53,6 +53,20 @@ class WalkCfg(_Cfg):
     rain_cap: float
 
 
+class RailCfg(_Cfg):
+    headway_min: int
+    avg_speed_kmh: float
+    access_min: float
+    egress_min: float
+    p_on_time_base: float
+    delay_median_min: float
+    delay_sigma: float
+    delay_cap_min: float
+    gust_threshold_ms: float
+    k_gust: float
+    max_delay_prob: float
+
+
 class ModelConfig(_Cfg):
     status: str
     grid: GridCfg
@@ -61,6 +75,7 @@ class ModelConfig(_Cfg):
     bike: BikeCfg
     drive: DriveCfg
     walk: WalkCfg
+    rail: RailCfg
 
 
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "model.yaml"
