@@ -25,7 +25,7 @@ export function CalendarButton({ id, mode, onError }: { id: string; mode: Mode; 
   }
 
   return (
-    <Button variant="outline" size="sm" className="self-start" onClick={download} disabled={busy}>
+    <Button type="button" variant="outline" size="sm" className="self-start" onClick={download} disabled={busy}>
       <CalendarPlus />
       {busy ? "Preparing..." : "Add to calendar"}
     </Button>
