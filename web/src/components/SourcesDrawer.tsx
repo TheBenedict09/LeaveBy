@@ -12,6 +12,7 @@ function badge(s: SourceMeta): { label: string; tone: string } {
   if (s.id === "tomtom-predicted") return { label: "Predicted", tone: "text-rain border-rain/50" }
   if (s.id === "simulated-incident") return { label: "Simulated", tone: "text-deadline border-deadline/60" }
   if (s.id === "mock-rail-delays") return { label: "Modelled", tone: "text-deadline border-deadline/50" }
+  if (s.kind === "recorded") return { label: "Recorded", tone: "text-deadline border-deadline/50" }
   if (s.kind === "live") return { label: "Live", tone: "text-safe border-safe/50" }
   if (s.kind === "cached") return { label: "Live, cached", tone: "text-safe border-safe/40" }
   if (s.kind === "static") return { label: "Static", tone: "text-rain border-rain/50" }
@@ -82,6 +83,8 @@ export function SourcesDrawer({
                     )}
                     <span className="text-xs text-muted-foreground">
                       {s.licence}
+                      {s.kind === "recorded" &&
+                        ` · recorded ${new Date(s.fetched_at).toLocaleString("en-GB")} (offline demo)`}
                       {(s.kind === "live" || s.kind === "cached") &&
                         ` · retrieved ${fmtTime(s.fetched_at)}${s.age_s ? `, ${Math.round(s.age_s / 60)} min old` : ""}`}
                     </span>

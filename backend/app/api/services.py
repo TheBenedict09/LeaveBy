@@ -3,6 +3,7 @@
 import os
 from collections import OrderedDict
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import httpx
@@ -14,6 +15,7 @@ from app.adapters.routing import RoutingAdapter
 from app.adapters.tomtom import TrafficAdapter
 from app.adapters.weather import WeatherAdapter
 from app.core.config import ModelConfig, load_model_config
+from app.core.fixtures import FixtureTransport, demo_dir
 from app.core.mockdata import MockData, load_mock_data
 from app.core.timetable import RailTimetable, load_timetable
 
@@ -49,13 +51,17 @@ class Services:
     store: Store = field(default_factory=Store)
     timetable: RailTimetable | None = None  # real GB rail timetable extract, if data/rail_timetable.json exists
     traffic: TrafficAdapter | None = None  # TomTom, only when TOMTOM_API_KEY is set
+    recorded_at: datetime | None = None  # set in offline demo mode: every provider answer is a recording
 
     @classmethod
     def create(
         cls, client: httpx.AsyncClient | None = None, routing_interval_s: float = 1.0, user_agent: str | None = None
     ) -> "Services":
-        client = client or httpx.AsyncClient()
+        demo = demo_dir() if client is None else None
+        replay = FixtureTransport(demo) if demo else None
+        client = client or httpx.AsyncClient(transport=replay)
         ua = user_agent or os.environ.get("LEAVEBY_USER_AGENT") or USER_AGENT
+        key = "recorded" if replay else os.environ.get("TOMTOM_API_KEY")
         return cls(
             client=client,
             weather=WeatherAdapter(client, ua),
@@ -64,7 +70,8 @@ class Services:
             cfg=load_model_config(),
             data=load_mock_data(),
             timetable=load_timetable(),
-            traffic=TrafficAdapter(client, key) if (key := os.environ.get("TOMTOM_API_KEY")) else None,
+            traffic=TrafficAdapter(client, key) if key else None,
+            recorded_at=replay.recorded_at if replay else None,
         )
 
 

@@ -19,8 +19,15 @@ export class ApiFailure extends Error {
 async function call<T>(path: string, init?: RequestInit): Promise<{ data: T; meta: Meta }> {
   let res: Response
   try {
-    res = await fetch(path, { headers: { "content-type": "application/json" }, ...init })
-  } catch {
+    // 20 s covers a cold forecast and routing fetch; longer means something upstream is stuck
+    res = await fetch(path, {
+      headers: { "content-type": "application/json" },
+      signal: AbortSignal.timeout(20_000),
+      ...init,
+    })
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "TimeoutError")
+      throw new ApiFailure("The LeaveBy API took too long to answer.", "TIMEOUT")
     throw new ApiFailure("Can't reach the LeaveBy API. Is it running?", "NETWORK")
   }
   const body = (await res.json().catch(() => null)) as Envelope<T> | null

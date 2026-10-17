@@ -253,7 +253,7 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
         animate={started ? "shown" : "hidden"}
         viewBox={`0 0 ${W} ${H}`}
         className="w-full"
-        role="img"
+        role="group"
         aria-label={`Simulated arrival times against your ${fmtTime(deadline)} deadline. ${summary}. Use "Show as table" for the numbers.`}
       >
         {x.ticks(6).map((t) => (
@@ -297,6 +297,7 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
                 <path
                   d={cloud ?? ""}
                   tabIndex={0}
+                  role="button"
                   aria-label={`${MODE_LABEL[o.mode]} arrival times, ${pct(o.p_on_time)} on time. Use the arrow keys to step through them.`}
                   className={`stroke-rain outline-none ${focused && hover?.dot === null ? "fill-rain/40" : "fill-rain/25"} focus-visible:fill-rain/40`}
                   strokeWidth={focused ? 2.5 : 1.5}

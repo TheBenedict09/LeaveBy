@@ -46,7 +46,7 @@ export function TradeOff({ options, confidence }: { options: Option[]; confidenc
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="w-full"
-        role="img"
+        role="group"
         aria-label={`Trade-offs: ${rows
           .map(
             (o) =>
@@ -95,7 +95,7 @@ export function TradeOff({ options, confidence }: { options: Option[]; confidenc
               key={o.mode}
               tabIndex={0}
               role="button"
-              aria-label={`${MODE_LABEL[o.mode]}: leave ${fmtTime(o.leave_by!)}, ${pct(o.p_on_time)} on time, £${o.cost_gbp.toFixed(2)}, ${o.co2e_kg.toFixed(1)} kg CO2e`}
+              aria-label={`${MODE_LABEL[o.mode].replace(/^by |^on /, "")}${best ? " · recommended" : ""}: leave ${fmtTime(o.leave_by!)}, ${pct(o.p_on_time)} on time, £${o.cost_gbp.toFixed(2)}, ${o.co2e_kg.toFixed(1)} kg CO2e`}
               className="cursor-pointer outline-none focus-visible:[&>circle:first-child]:stroke-ring"
               onPointerEnter={() => setActive(o.mode)}
               onPointerLeave={() => setActive(null)}

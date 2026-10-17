@@ -227,7 +227,7 @@ class GeocodeData(Strict):
 
 class SourceInfo(Strict):
     id: str
-    kind: Literal["live", "static", "mock", "cached", "estimated"]
+    kind: Literal["live", "static", "mock", "cached", "estimated", "recorded"]
     role: str
     licence: str
     attribution: str | None = None

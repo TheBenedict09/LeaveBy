@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { Cloud, Leaf } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { CalendarButton } from "@/components/CalendarButton"
@@ -38,6 +40,7 @@ const API_DOT: Record<ApiState, string> = {
 
 export default function App() {
   const [api, setApi] = useState<ApiState>("checking")
+  const [demo, setDemo] = useState(false) // the API is replaying recorded responses (DEMO_FIXTURES=1)
   const [confidence, setConfidence] = useState([95])
   const [weights, setWeights] = useState<Weights>(DEFAULT_WEIGHTS)
   const [picked, setPicked] = useState<Mode | null>(null) // option shown on the map; null = the recommendation
@@ -53,15 +56,23 @@ export default function App() {
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const latest = useRef(0) // request counter: only the newest reply may land
+  const busy = useRef(false) // a search is in flight (a ref, so two clicks in the same tick both see it)
+  const [last, setLast] = useState<ComposerValue | null>(null) // the last search, for "Try again"
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
     fetch("/healthz")
-      .then((r) => setApi(r.ok ? "up" : "down"))
+      .then(async (r) => {
+        setApi(r.ok ? "up" : "down")
+        setDemo(Boolean((await r.json().catch(() => null))?.demo))
+      })
       .catch(() => setApi("down"))
   }, [])
 
   async function run(v: ComposerValue) {
+    if (busy.current) return // a second submit while the first is still running is ignored
+    busy.current = true
+    setLast(v)
     clearTimeout(timer.current)
     const n = ++latest.current
     setPicked(null)
@@ -81,11 +92,14 @@ export default function App() {
       })
       if (n !== latest.current) return
       setResult({ ...res, arriveBy, runId: res.data.recommendation_id, confidence: confidence[0] })
+      // Keyboard and screen reader users land on the answer (no scroll: the chart scrolls itself into view)
+      requestAnimationFrame(() => document.getElementById("verdict")?.focus({ preventScroll: true }))
     } catch (e) {
       if (n !== latest.current) return
       setResult(null)
       setError(e instanceof Error ? e.message : "Something went wrong")
     } finally {
+      busy.current = false
       setLoading(false)
     }
   }
@@ -141,6 +155,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
+      <a
+        href="#verdict"
+        className="sr-only z-50 rounded-md bg-rain px-3 py-2 text-background focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        Skip to your verdict
+      </a>
       <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -150,13 +170,24 @@ export default function App() {
               <span className="lb-drop" style={{ left: "52%", animationDelay: "0.45s" }} />
               <span className="lb-drop" style={{ left: "74%", animationDelay: "0.9s" }} />
             </span>
-            <span className="text-lg font-semibold tracking-tight">LeaveBy</span>
+            <h1 className="text-lg font-semibold tracking-tight">LeaveBy</h1>
             <span className="hidden text-sm text-muted-foreground sm:inline">One app. One clear decision.</span>
           </div>
-          <Badge variant="outline" className="gap-2 font-mono text-xs" role="status">
-            <span className={`size-2 rounded-full ${API_DOT[api]}`} aria-hidden />
-            {API_LABEL[api]}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {demo && (
+              <Badge
+                variant="outline"
+                className="border-deadline/60 text-xs text-deadline"
+                title="Every provider answer is a recording; nothing is live"
+              >
+                Offline demo mode
+              </Badge>
+            )}
+            <Badge variant="outline" className="gap-2 font-mono text-xs" role="status">
+              <span className={`size-2 rounded-full ${API_DOT[api]}`} aria-hidden />
+              {API_LABEL[api]}
+            </Badge>
+          </div>
         </div>
       </header>
 
@@ -169,8 +200,16 @@ export default function App() {
           </Card>
 
           {error && (
-            <div role="alert" className="rounded-lg border border-risk/40 bg-risk/10 px-4 py-3 text-sm text-risk">
-              {error}
+            <div
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-risk/40 bg-risk/10 px-4 py-3 text-sm text-risk"
+            >
+              <span>{error}</span>
+              {last && !loading && (
+                <Button variant="outline" size="sm" onClick={() => run(last)}>
+                  Try again
+                </Button>
+              )}
             </div>
           )}
 
@@ -182,7 +221,7 @@ export default function App() {
             </div>
           )}
 
-          <Card>
+          <Card id="verdict" tabIndex={-1} className="scroll-mt-4 outline-none">
             <CardHeader>
               <CardDescription>Your verdict</CardDescription>
               <CardTitle
@@ -223,7 +262,12 @@ export default function App() {
               </div>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              {headline ? (
+              {loading && !data ? (
+                <div className="flex flex-col gap-2" aria-hidden>
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ) : headline ? (
                 <p>
                   {MODE_LABEL[headline.mode]}. On time in{" "}
                   <span className="font-mono text-safe">
@@ -382,7 +426,7 @@ export default function App() {
                           type="button"
                           disabled={!o.feasible}
                           aria-pressed={shown?.mode === o.mode}
-                          aria-label={o.feasible ? `Show ${MODE_LABEL[o.mode]} on the map` : undefined}
+                          title={o.feasible ? "Show on the map" : undefined}
                           onClick={() => setPicked(o.mode)}
                           className={`flex items-center gap-2 rounded-md px-1 font-medium ${o.feasible ? "hover:text-rain" : "cursor-default"} ${shown?.mode === o.mode ? "text-rain" : ""}`}
                         >

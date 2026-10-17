@@ -50,7 +50,7 @@ Copy `.env.example` to `.env` and fill in what you need. `.env` is git-ignored; 
 | `TOMTOM_API_KEY` | Optional | Car times with TomTom traffic and live incidents. Without it the app works as before and uses free-flow car times from OSRM. |
 | `LEAVEBY_USER_AGENT` | Recommended | User-Agent sent to the free OSRM and Open-Meteo services. |
 | `LEAVEBY_CORS_ORIGINS` | Optional | Allowed web origins for the API (default `http://localhost:5173`). |
-| `DEMO_FIXTURES` | Not used yet | Reserved for an offline demo mode that is not implemented. |
+| `DEMO_FIXTURES` | Optional | `1` replays the recordings in `fixtures/demo/` with no network (Glasgow Central to Edinburgh Waverley and to Paisley Gilmour Street). Every source shows as Recorded. Re-record with `make record-fixtures` (needs the network). |
 
 ### Tests and checks
 
@@ -98,7 +98,7 @@ Credits and licences:
 - The walk to and from the station is a fixed allowance (12 minutes to the platform, 8 minutes from it), not routed.
 - Train cost and CO2e use the road distance as a stand-in for the rail distance.
 - Incidents are only fetched for trips leaving within 2 hours, and not for very long trips (the search area is too large for one request).
-- There is no offline fixtures mode yet: the demo needs internet.
+- The offline demo mode only covers the two recorded routes.
 - Recommendations are kept in memory, so a restart of the API expires them (the app then asks you to search again).
 
 ## 3-minute demo script

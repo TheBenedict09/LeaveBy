@@ -131,7 +131,7 @@ export interface Warning {
 
 export interface SourceMeta {
   id: string
-  kind: "live" | "static" | "mock" | "cached" | "estimated"
+  kind: "live" | "static" | "mock" | "cached" | "estimated" | "recorded"
   fetched_at: string
   age_s: number
   latency_ms?: number | null

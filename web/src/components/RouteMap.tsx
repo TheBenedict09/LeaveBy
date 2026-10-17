@@ -135,17 +135,23 @@ export default function RouteMap({
     drawn.current = key
     markers.current.forEach((mk) => mk.remove())
     markers.current = []
-    const add = (at: LatLon, el: HTMLElement, label?: string) => {
-      const mk = new maplibregl.Marker({ element: el }).setLngLat(ll(at) as LngLatLike)
+    const add = (at: LatLon, el: HTMLElement, label?: string, above = false) => {
+      // station labels sit above their point, so they never cover the start or destination pin beneath
+      const mk = new maplibregl.Marker({
+        element: el,
+        anchor: above ? "bottom" : "center",
+        offset: above ? [0, -8] : [0, 0],
+      }).setLngLat(ll(at) as LngLatLike)
       if (label) mk.setPopup(new maplibregl.Popup({ offset: 12, closeButton: false }).setText(label))
       markers.current.push(mk.addTo(m))
+      el.tabIndex = -1 // decorative: the map's label already says where the pins are
     }
     add(route.origin as LatLon, pin("lb-pin lb-pin-start", "Start"), "Start")
     add(route.destination as LatLon, pin("lb-pin lb-pin-end", "Destination"), "Destination")
     for (const s of lines.stations) {
       const el = pin("lb-station", s.name)
       el.textContent = s.name
-      add(s.at, el)
+      add(s.at, el, undefined, true)
     }
     ;(m.getSource("dotted") as GeoJSONSource).setData(multi(lines.dotted))
     const all = [route.origin as LatLon, route.destination as LatLon, ...lines.solid]
@@ -184,7 +190,7 @@ export default function RouteMap({
   if (failed) return <Schematic route={route} lines={lines} label={label} />
   return (
     <div className="relative">
-      <div ref={box} role="img" aria-label={label} className="h-72 w-full overflow-hidden rounded-lg sm:h-80" />
+      <div ref={box} role="region" aria-label={label} className="h-72 w-full overflow-hidden rounded-lg sm:h-80" />
       {mode === "train" && service && (
         <p className="mt-2 text-xs text-muted-foreground">
           Rail line shown schematically, not the track. Dotted legs to and from the stations are not routed.

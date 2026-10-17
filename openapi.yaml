@@ -724,6 +724,7 @@ components:
           - mock
           - cached
           - estimated
+          - recorded
           title: Kind
           type: string
         licence:
@@ -765,6 +766,7 @@ components:
           - mock
           - cached
           - estimated
+          - recorded
           title: Kind
           type: string
         latency_ms:
