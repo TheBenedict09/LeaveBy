@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-SourceKind = Literal["live", "static", "mock", "cached", "estimated"]  # static: a real published file
+SourceKind = Literal["live", "static", "mock", "cached", "estimated", "recorded"]  # static: a real published file
 
 
 class SourceMeta(BaseModel):

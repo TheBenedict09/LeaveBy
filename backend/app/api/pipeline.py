@@ -140,6 +140,13 @@ def to_problem(req: RecommendationRequest, deadline_ts: int) -> Problem:
     )
 
 
+def as_recorded(s: SourceMeta, recorded_at: datetime) -> SourceMeta:
+    if s.kind not in ("live", "cached"):
+        return s
+    age = int((clock.now() - recorded_at).total_seconds())
+    return s.model_copy(update={"kind": "recorded", "fetched_at": recorded_at, "age_s": max(age, 0)})
+
+
 def _dedupe(sources: list[SourceMeta]) -> list[SourceMeta]:
     seen: set[tuple[str, str]] = set()
     out = []
@@ -234,6 +241,8 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
                 attribution=TIMETABLE_ATTRIBUTION,
             )
         )
+    if services.recorded_at is not None:  # offline demo mode: nothing here is live, whatever the adapters say
+        sources = [as_recorded(s, services.recorded_at) for s in sources]
     unused = "mock-rail" if schedule is not None else "mock-rail-delays"
     for sid, lic in MOCK_SOURCES.items():
         if sid != unused:

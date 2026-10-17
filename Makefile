@@ -1,4 +1,4 @@
-.PHONY: dev test lint fmt openapi web rail-data
+.PHONY: dev test lint fmt openapi web rail-data record-fixtures
 dev:
 	cd backend && uvicorn app.main:app --reload --port 8000
 
@@ -16,3 +16,6 @@ openapi:
 
 rail-data:
 	python scripts/build_rail_timetable.py
+
+record-fixtures:
+	python scripts/record_fixtures.py

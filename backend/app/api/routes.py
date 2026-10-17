@@ -15,6 +15,7 @@ from app.api.schemas import (
     SourcesData,
 )
 from app.api.services import Services, get_services
+from app.core.fixtures import FixtureMiss
 
 router = APIRouter()
 
@@ -41,7 +42,10 @@ async def create_recommendation(
     request: Request,
     services: Services = Depends(get_services),  # noqa: B008
 ) -> dict[str, Any]:
-    rec = await pipeline.build(body, services)
+    try:
+        rec = await pipeline.build(body, services)
+    except FixtureMiss as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     services.store.put(rec)
     return _ok(request, pipeline.to_data(rec), **pipeline.public_meta(rec))
 
@@ -89,7 +93,10 @@ async def geocode(
     q = q.strip()
     if len(q) < 2 or any(ord(c) < 32 for c in q):
         raise HTTPException(status_code=422, detail="Search text must be 2 to 100 plain characters")
-    res = await services.geocode.fetch(q, limit)
+    try:
+        res = await services.geocode.fetch(q, limit)
+    except FixtureMiss as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     data = GeocodeData(places=[Place(label=p.label, lat=p.lat, lon=p.lon) for p in res.data])
     fallback = res.meta.kind == "estimated"
     warnings = (
@@ -97,7 +104,8 @@ async def geocode(
         if fallback
         else []
     )
-    return _ok(request, data, degraded=fallback, warnings=warnings, sources=[res.meta.model_dump(mode="json")])
+    meta = res.meta if services.recorded_at is None else pipeline.as_recorded(res.meta, services.recorded_at)
+    return _ok(request, data, degraded=fallback, warnings=warnings, sources=[meta.model_dump(mode="json")])
 
 
 @router.get("/v1/sources", response_model=Envelope[SourcesData], tags=["transparency"])
