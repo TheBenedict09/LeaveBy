@@ -120,6 +120,7 @@ export type Envelope<T> = { ok: true; data: T; meta: Meta } | { ok: false; error
 export interface ComposerValue {
   origin: Place
   destination: Place
-  arriveByLocal: string
+  dayOffset: number
+  time: string
   hasCar: boolean
 }

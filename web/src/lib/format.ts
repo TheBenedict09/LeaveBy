@@ -15,11 +15,11 @@ export function pct(x: number): string {
   return `${Math.round(x * 100)}%`
 }
 
-/** Tomorrow 09:00 in the browser's time zone, in the format a datetime-local field wants. */
-export function defaultArriveByLocal(): string {
+/** The moment you must arrive, as an ISO string, from "N days from today" plus a "HH:MM" time. */
+export function arriveByIso(dayOffset: number, time: string): string {
+  const [h, m] = time.split(":").map(Number)
   const d = new Date()
-  d.setDate(d.getDate() + 1)
-  d.setHours(9, 0, 0, 0)
-  const p = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+  d.setDate(d.getDate() + dayOffset)
+  d.setHours(h, m, 0, 0)
+  return d.toISOString()
 }
