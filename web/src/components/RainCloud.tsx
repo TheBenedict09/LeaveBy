@@ -231,7 +231,8 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
     )
   }
 
-  const ease = still ? undefined : "r 150ms ease-out, opacity 150ms"
+  // cx and d glide when a rescore moves the dots and clouds (Chrome and Safari; others snap).
+  const ease = still ? undefined : "r 150ms ease-out, opacity 150ms, cx 500ms ease-in-out"
 
   return (
     <div className="relative" onPointerLeave={() => setHover(null)}>
@@ -284,7 +285,7 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
                   aria-label={`${MODE_LABEL[o.mode]} arrival times, ${pct(o.p_on_time)} on time. Use the arrow keys to step through them.`}
                   className={`stroke-rain outline-none ${focused && hover?.dot === null ? "fill-rain/40" : "fill-rain/25"} focus-visible:fill-rain/40`}
                   strokeWidth={focused ? 2.5 : 1.5}
-                  style={{ transition: ease && "fill 150ms, stroke-width 150ms" }}
+                  style={{ transition: ease && "fill 150ms, stroke-width 150ms, d 500ms ease-in-out" }}
                   onPointerMove={(e) => ready && setHover({ row: r, t: timeAt(e), dot: null })}
                   onKeyDown={(e) => onKey(e, r)}
                   onBlur={() => setHover(null)}

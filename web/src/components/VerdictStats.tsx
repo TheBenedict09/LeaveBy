@@ -1,0 +1,48 @@
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import type { Meta, Option } from "@/lib/types"
+
+// What each non-live source feeds, in words people understand.
+const SOURCE_LABEL: Record<string, string> = {
+  "mock-rail": "train times and delays",
+  "mock-fares": "fares and running costs",
+  "mock-emissions": "CO2e per km",
+  "mock-accessibility": "access score",
+}
+
+/** Cost, carbon and access for the winning option, with an honest tag when any of it is not live data. */
+export function VerdictStats({ option, meta }: { option: Option; meta: Meta }) {
+  const kind = new Map(meta.sources.map((s) => [s.id, s.kind]))
+  const estimated = option.provenance.filter((id) => {
+    const k = kind.get(id) ?? (id.startsWith("mock-") ? "mock" : "live")
+    return k === "mock" || k === "estimated"
+  })
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+      <Stat label="Cost" value={`£${option.cost_gbp.toFixed(2)}`} />
+      <Stat label="CO2e" value={`${option.co2e_kg.toFixed(1)} kg`} />
+      <Stat label="Access score" value={option.accessibility.score.toFixed(2)} />
+      {estimated.length > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="cursor-help text-deadline" tabIndex={0}>
+              Estimated
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-64">
+            Not live yet: {estimated.map((id) => SOURCE_LABEL[id] ?? id).join(", ")}.
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="text-muted-foreground">
+      {label} <span className="font-mono text-foreground">{value}</span>
+    </span>
+  )
+}
