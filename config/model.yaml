@@ -39,7 +39,14 @@ walk:
 
 rail:                    # MOCK rail model (blueprint 5.4): generated timetable, simulated delays, no live feed
   headway_min: 15
-  avg_speed_kmh: 95      # rail distance is approximated by the road distance
+  # Average scheduled speed by trip length, linear in between and flat beyond the ends. Short trips stop
+  # more often, so they average less. Rail distance is approximated by the road distance.
+  speed_table_km_kmh: [[20, 50], [80, 90], [250, 92], [600, 135]]
+  timezone: Europe/London
+  # Trains leave only inside this local window, on the day of the deadline: no overnight journeys
+  # (there is no sleeper in the mock), so a trip that needs an earlier train is simply not possible by rail.
+  first_departure: "05:30"
+  last_departure: "23:30"
   access_min: 12         # door to platform
   egress_min: 8          # platform to destination
   p_on_time_base: 0.88   # chance a train runs without a delay

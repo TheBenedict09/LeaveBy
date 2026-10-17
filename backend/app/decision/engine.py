@@ -51,6 +51,7 @@ class Simulation:
     n_draws: int
     sims: dict[str, SimResult]
     facts: dict[str, ModeFacts]
+    train_cut_early: bool = False  # the deadline needs a train earlier than the first one of the day
 
 
 @dataclass(frozen=True)
@@ -119,10 +120,10 @@ def simulate_all(
         sims[mode] = simulate(mode, r.duration_s, r.bearing_deg, weather, deps, z, cfg)
         facts[mode] = _facts(mode, r.distance_m, data)
     rail_m = routes["drive"].distance_m
-    deps = train_departures(deadline_ts, rail_m, cfg)
+    deps, cut_early = train_departures(deadline_ts, rail_m, cfg)
     sims["train"] = simulate_train(rail_m, weather, deps, make_rail_noise(seed, n_members, n_draws), cfg)
     facts["train"] = _facts("train", rail_m, data)
-    return Simulation(deadline_ts, seed, n_members, n_draws, sims, facts)
+    return Simulation(deadline_ts, seed, n_members, n_draws, sims, facts, cut_early)
 
 
 def _infeasible_reason(mode: str, s: ModeSummary, f: ModeFacts, p: Problem) -> str | None:
@@ -154,6 +155,8 @@ def decide(sim: Simulation, problem: Problem) -> Decision:
     w = normalise_weights(problem.weights)
     summaries = {m: summarise(sim.sims[m], sim.deadline_ts, problem.confidence) for m in MODES}
     reasons = {m: _infeasible_reason(m, summaries[m], sim.facts[m], problem) for m in MODES}
+    if sim.train_cut_early and (reasons["train"] or "").startswith("Cannot reach"):
+        reasons["train"] = "No train runs early enough"
     feasible = [m for m in MODES if reasons[m] is None]
 
     raw = {m: _criteria(summaries[m], sim.facts[m], problem) for m in feasible}

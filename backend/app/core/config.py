@@ -1,6 +1,7 @@
 """Model configuration loaded from config/model.yaml (blueprint 5.3, 5.4)."""
 
 import os
+from datetime import time
 from functools import lru_cache
 from pathlib import Path
 
@@ -55,7 +56,10 @@ class WalkCfg(_Cfg):
 
 class RailCfg(_Cfg):
     headway_min: int
-    avg_speed_kmh: float
+    speed_table_km_kmh: list[tuple[float, float]]
+    timezone: str
+    first_departure: time
+    last_departure: time
     access_min: float
     egress_min: float
     p_on_time_base: float

@@ -138,3 +138,9 @@ def test_probability_at_leave_by_meets_confidence_for_every_feasible_mode():
     for o in d.options:
         if o.summary.feasible:
             assert o.summary.p_on_time >= 0.9
+
+
+def test_a_deadline_before_the_first_train_makes_rail_infeasible_with_a_plain_reason():
+    # The shared test deadline is 00:46 UK time: no train runs then, and the first one of the day is too late.
+    train = next(o for o in decide(sim(), problem()).options if o.mode == "train")
+    assert not train.feasible and train.infeasible_reason == "No train runs early enough"
