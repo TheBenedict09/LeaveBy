@@ -140,7 +140,7 @@ export default function App() {
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
                 Both plans fail together in{" "}
-                <span className="font-mono text-risk">
+                <span className={`font-mono ${data.hedge.both_late_scenarios ? "text-risk" : "text-safe"}`}>
                   {data.hedge.both_late_scenarios.toLocaleString()} of {data.hedge.total_scenarios.toLocaleString()}
                 </span>{" "}
                 simulated journeys.
@@ -180,7 +180,11 @@ export default function App() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RainCloud options={result.data.options} deadline={result.arriveBy} />
+                <RainCloud
+                  options={result.data.options}
+                  deadline={result.arriveBy}
+                  runId={result.data.recommendation_id}
+                />
               </CardContent>
             </Card>
           ) : (
