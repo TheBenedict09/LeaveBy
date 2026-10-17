@@ -19,7 +19,8 @@ export function Reveal({ order, children }: { order: number; children: ReactNode
 export function RollingTime({ text }: { text: string }) {
   const still = useReducedMotion() ?? false
   return (
-    <span className="inline-flex" aria-label={text}>
+    <span className="inline-flex">
+      <span className="sr-only">{text}</span>
       {[...text].map((ch, i) =>
         /\d/.test(ch) ? (
           <span key={i} aria-hidden className="relative inline-block h-[1em] w-[0.62em] overflow-hidden leading-none">

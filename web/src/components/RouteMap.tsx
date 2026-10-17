@@ -139,6 +139,7 @@ export default function RouteMap({
       const mk = new maplibregl.Marker({ element: el }).setLngLat(ll(at) as LngLatLike)
       if (label) mk.setPopup(new maplibregl.Popup({ offset: 12, closeButton: false }).setText(label))
       markers.current.push(mk.addTo(m))
+      el.tabIndex = -1 // decorative: the map's label already says where the pins are
     }
     add(route.origin as LatLon, pin("lb-pin lb-pin-start", "Start"), "Start")
     add(route.destination as LatLon, pin("lb-pin lb-pin-end", "Destination"), "Destination")
@@ -184,7 +185,7 @@ export default function RouteMap({
   if (failed) return <Schematic route={route} lines={lines} label={label} />
   return (
     <div className="relative">
-      <div ref={box} role="img" aria-label={label} className="h-72 w-full overflow-hidden rounded-lg sm:h-80" />
+      <div ref={box} role="region" aria-label={label} className="h-72 w-full overflow-hidden rounded-lg sm:h-80" />
       {mode === "train" && service && (
         <p className="mt-2 text-xs text-muted-foreground">
           Rail line shown schematically, not the track. Dotted legs to and from the stations are not routed.

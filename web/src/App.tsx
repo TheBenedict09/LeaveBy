@@ -85,6 +85,8 @@ export default function App() {
       })
       if (n !== latest.current) return
       setResult({ ...res, arriveBy, runId: res.data.recommendation_id, confidence: confidence[0] })
+      // Keyboard and screen reader users land on the answer (no scroll: the chart scrolls itself into view)
+      requestAnimationFrame(() => document.getElementById("verdict")?.focus({ preventScroll: true }))
     } catch (e) {
       if (n !== latest.current) return
       setResult(null)
@@ -145,6 +147,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
+      <a
+        href="#verdict"
+        className="sr-only z-50 rounded-md bg-rain px-3 py-2 text-background focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        Skip to your verdict
+      </a>
       <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -154,7 +162,7 @@ export default function App() {
               <span className="lb-drop" style={{ left: "52%", animationDelay: "0.45s" }} />
               <span className="lb-drop" style={{ left: "74%", animationDelay: "0.9s" }} />
             </span>
-            <span className="text-lg font-semibold tracking-tight">LeaveBy</span>
+            <h1 className="text-lg font-semibold tracking-tight">LeaveBy</h1>
             <span className="hidden text-sm text-muted-foreground sm:inline">One app. One clear decision.</span>
           </div>
           <div className="flex items-center gap-2">
@@ -197,7 +205,7 @@ export default function App() {
             </div>
           )}
 
-          <Card>
+          <Card id="verdict" tabIndex={-1} className="scroll-mt-4 outline-none">
             <CardHeader>
               <CardDescription>Your verdict</CardDescription>
               <CardTitle
@@ -397,7 +405,7 @@ export default function App() {
                           type="button"
                           disabled={!o.feasible}
                           aria-pressed={shown?.mode === o.mode}
-                          aria-label={o.feasible ? `Show ${MODE_LABEL[o.mode]} on the map` : undefined}
+                          title={o.feasible ? "Show on the map" : undefined}
                           onClick={() => setPicked(o.mode)}
                           className={`flex items-center gap-2 rounded-md px-1 font-medium ${o.feasible ? "hover:text-rain" : "cursor-default"} ${shown?.mode === o.mode ? "text-rain" : ""}`}
                         >
