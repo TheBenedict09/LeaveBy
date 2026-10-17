@@ -36,3 +36,16 @@ drive:
 walk:
   k_rain: 0.02
   rain_cap: 0.15
+
+rail:                    # MOCK rail model (blueprint 5.4): generated timetable, simulated delays, no live feed
+  headway_min: 15
+  avg_speed_kmh: 95      # rail distance is approximated by the road distance
+  access_min: 12         # door to platform
+  egress_min: 8          # platform to destination
+  p_on_time_base: 0.88   # chance a train runs without a delay
+  delay_median_min: 6
+  delay_sigma: 0.8       # lognormal spread of delay length
+  delay_cap_min: 45
+  gust_threshold_ms: 15.0
+  k_gust: 0.02           # extra delay probability per m/s of gust above the threshold
+  max_delay_prob: 0.9

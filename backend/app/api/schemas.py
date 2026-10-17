@@ -105,6 +105,15 @@ class ErrorBody(Strict):
     fields: list[FieldError] = []
 
 
+class RescoreRequest(Strict):
+    """Any field left out keeps the value from the original request."""
+
+    confidence: float | None = Field(None, ge=0.5, le=0.99)
+    weights: Weights | None = None
+    constraints: Constraints | None = None
+    options: Options | None = None
+
+
 class Headline(Strict):
     mode: Mode
     leave_at: datetime
@@ -113,11 +122,81 @@ class Headline(Strict):
     total_scenarios: int = Field(ge=1)
 
 
+class ArrivalQuantiles(Strict):
+    p05: datetime
+    p50: datetime
+    p95: datetime
+
+
+class CliffPoint(Strict):
+    leave: datetime
+    p_on_time: float = Field(ge=0, le=1)
+
+
+class AccessibilityOut(Strict):
+    feasible: bool
+    score: float = Field(ge=0, le=1)
+
+
+class OptionOut(Strict):
+    mode: Mode
+    rank: int | None
+    score: float | None
+    feasible: bool
+    infeasible_reason: str | None
+    leave_by: datetime | None
+    p_on_time: float = Field(ge=0, le=1)
+    on_time_scenarios: int = Field(ge=0)
+    total_scenarios: int = Field(ge=1)
+    arrival: ArrivalQuantiles
+    journey_at_risk_min: float
+    cost_gbp: float
+    co2e_kg: float
+    accessibility: AccessibilityOut
+    cliff: list[CliffPoint]
+    scenario_arrivals: list[datetime]
+    provenance: list[str]
+
+
+class HedgeOut(Strict):
+    backup_mode: Mode
+    leave_at: datetime
+    p_both_late: float = Field(ge=0, le=1)
+    both_late_scenarios: int = Field(ge=0)
+    total_scenarios: int = Field(ge=1)
+    reason: str | None
+
+
+class ExplanationOut(Strict):
+    mode: Literal["template"] = "template"
+    because: list[str]
+    tradeoffs: list[str]
+    flip_points: list[str]
+
+
 class RecommendationData(Strict):
     recommendation_id: str
-    headline: Headline
-    # Filled in as the engine grows (steps 5-8): options, hedge, explanation.
+    headline: Headline | None  # None when no option can reach the confidence level
+    options: list[OptionOut]
+    hedge: HedgeOut | None
+    explanation: ExplanationOut
     assumptions_ref: str = "/v1/assumptions"
+
+
+class GeocodeData(Strict):
+    places: list[Place]
+
+
+class SourceInfo(Strict):
+    id: str
+    kind: Literal["live", "mock", "cached", "estimated"]
+    role: str
+    licence: str
+    attribution: str | None = None
+
+
+class SourcesData(Strict):
+    sources: list[SourceInfo]
 
 
 T = TypeVar("T")

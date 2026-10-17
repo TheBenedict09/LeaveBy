@@ -1,5 +1,59 @@
 components:
   schemas:
+    AccessibilityOut:
+      additionalProperties: false
+      properties:
+        feasible:
+          title: Feasible
+          type: boolean
+        score:
+          maximum: 1.0
+          minimum: 0.0
+          title: Score
+          type: number
+      required:
+      - feasible
+      - score
+      title: AccessibilityOut
+      type: object
+    ArrivalQuantiles:
+      additionalProperties: false
+      properties:
+        p05:
+          format: date-time
+          title: P05
+          type: string
+        p50:
+          format: date-time
+          title: P50
+          type: string
+        p95:
+          format: date-time
+          title: P95
+          type: string
+      required:
+      - p05
+      - p50
+      - p95
+      title: ArrivalQuantiles
+      type: object
+    CliffPoint:
+      additionalProperties: false
+      properties:
+        leave:
+          format: date-time
+          title: Leave
+          type: string
+        p_on_time:
+          maximum: 1.0
+          minimum: 0.0
+          title: P On Time
+          type: number
+      required:
+      - leave
+      - p_on_time
+      title: CliffPoint
+      type: object
     Constraints:
       additionalProperties: false
       properties:
@@ -23,6 +77,26 @@ components:
           type: boolean
       title: Constraints
       type: object
+    Envelope_GeocodeData_:
+      properties:
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/GeocodeData'
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+        ok:
+          title: Ok
+          type: boolean
+      required:
+      - ok
+      - meta
+      title: Envelope[GeocodeData]
+      type: object
     Envelope_RecommendationData_:
       properties:
         data:
@@ -42,6 +116,48 @@ components:
       - ok
       - meta
       title: Envelope[RecommendationData]
+      type: object
+    Envelope_SourcesData_:
+      properties:
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/SourcesData'
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+        ok:
+          title: Ok
+          type: boolean
+      required:
+      - ok
+      - meta
+      title: Envelope[SourcesData]
+      type: object
+    Envelope_dict_str__Any__:
+      properties:
+        data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Data
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+        ok:
+          title: Ok
+          type: boolean
+      required:
+      - ok
+      - meta
+      title: Envelope[dict[str, Any]]
       type: object
     ErrorBody:
       additionalProperties: false
@@ -81,6 +197,35 @@ components:
       - detail
       title: ErrorBody
       type: object
+    ExplanationOut:
+      additionalProperties: false
+      properties:
+        because:
+          items:
+            type: string
+          title: Because
+          type: array
+        flip_points:
+          items:
+            type: string
+          title: Flip Points
+          type: array
+        mode:
+          const: template
+          default: template
+          title: Mode
+          type: string
+        tradeoffs:
+          items:
+            type: string
+          title: Tradeoffs
+          type: array
+      required:
+      - because
+      - tradeoffs
+      - flip_points
+      title: ExplanationOut
+      type: object
     FieldError:
       additionalProperties: false
       properties:
@@ -94,6 +239,18 @@ components:
       - path
       - message
       title: FieldError
+      type: object
+    GeocodeData:
+      additionalProperties: false
+      properties:
+        places:
+          items:
+            $ref: '#/components/schemas/Place'
+          title: Places
+          type: array
+      required:
+      - places
+      title: GeocodeData
       type: object
     HTTPValidationError:
       properties:
@@ -140,6 +297,48 @@ components:
       - total_scenarios
       title: Headline
       type: object
+    HedgeOut:
+      additionalProperties: false
+      properties:
+        backup_mode:
+          enum:
+          - walk
+          - bike
+          - drive
+          - train
+          title: Backup Mode
+          type: string
+        both_late_scenarios:
+          minimum: 0.0
+          title: Both Late Scenarios
+          type: integer
+        leave_at:
+          format: date-time
+          title: Leave At
+          type: string
+        p_both_late:
+          maximum: 1.0
+          minimum: 0.0
+          title: P Both Late
+          type: number
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        total_scenarios:
+          minimum: 1.0
+          title: Total Scenarios
+          type: integer
+      required:
+      - backup_mode
+      - leave_at
+      - p_both_late
+      - both_late_scenarios
+      - total_scenarios
+      - reason
+      title: HedgeOut
+      type: object
     Meta:
       additionalProperties: false
       properties:
@@ -175,6 +374,103 @@ components:
       - request_id
       - generated_at
       title: Meta
+      type: object
+    OptionOut:
+      additionalProperties: false
+      properties:
+        accessibility:
+          $ref: '#/components/schemas/AccessibilityOut'
+        arrival:
+          $ref: '#/components/schemas/ArrivalQuantiles'
+        cliff:
+          items:
+            $ref: '#/components/schemas/CliffPoint'
+          title: Cliff
+          type: array
+        co2e_kg:
+          title: Co2E Kg
+          type: number
+        cost_gbp:
+          title: Cost Gbp
+          type: number
+        feasible:
+          title: Feasible
+          type: boolean
+        infeasible_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Infeasible Reason
+        journey_at_risk_min:
+          title: Journey At Risk Min
+          type: number
+        leave_by:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Leave By
+        mode:
+          enum:
+          - walk
+          - bike
+          - drive
+          - train
+          title: Mode
+          type: string
+        on_time_scenarios:
+          minimum: 0.0
+          title: On Time Scenarios
+          type: integer
+        p_on_time:
+          maximum: 1.0
+          minimum: 0.0
+          title: P On Time
+          type: number
+        provenance:
+          items:
+            type: string
+          title: Provenance
+          type: array
+        rank:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Rank
+        scenario_arrivals:
+          items:
+            format: date-time
+            type: string
+          title: Scenario Arrivals
+          type: array
+        score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Score
+        total_scenarios:
+          minimum: 1.0
+          title: Total Scenarios
+          type: integer
+      required:
+      - mode
+      - rank
+      - score
+      - feasible
+      - infeasible_reason
+      - leave_by
+      - p_on_time
+      - on_time_scenarios
+      - total_scenarios
+      - arrival
+      - journey_at_risk_min
+      - cost_gbp
+      - co2e_kg
+      - accessibility
+      - cliff
+      - scenario_arrivals
+      - provenance
+      title: OptionOut
       type: object
     Options:
       additionalProperties: false
@@ -227,14 +523,30 @@ components:
           default: /v1/assumptions
           title: Assumptions Ref
           type: string
+        explanation:
+          $ref: '#/components/schemas/ExplanationOut'
         headline:
-          $ref: '#/components/schemas/Headline'
+          anyOf:
+          - $ref: '#/components/schemas/Headline'
+          - type: 'null'
+        hedge:
+          anyOf:
+          - $ref: '#/components/schemas/HedgeOut'
+          - type: 'null'
+        options:
+          items:
+            $ref: '#/components/schemas/OptionOut'
+          title: Options
+          type: array
         recommendation_id:
           title: Recommendation Id
           type: string
       required:
       - recommendation_id
       - headline
+      - options
+      - hedge
+      - explanation
       title: RecommendationData
       type: object
     RecommendationRequest:
@@ -280,6 +592,63 @@ components:
       - arrive_by
       title: RecommendationRequest
       type: object
+    RescoreRequest:
+      additionalProperties: false
+      description: Any field left out keeps the value from the original request.
+      properties:
+        confidence:
+          anyOf:
+          - maximum: 0.99
+            minimum: 0.5
+            type: number
+          - type: 'null'
+          title: Confidence
+        constraints:
+          anyOf:
+          - $ref: '#/components/schemas/Constraints'
+          - type: 'null'
+        options:
+          anyOf:
+          - $ref: '#/components/schemas/Options'
+          - type: 'null'
+        weights:
+          anyOf:
+          - $ref: '#/components/schemas/Weights'
+          - type: 'null'
+      title: RescoreRequest
+      type: object
+    SourceInfo:
+      additionalProperties: false
+      properties:
+        attribution:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Attribution
+        id:
+          title: Id
+          type: string
+        kind:
+          enum:
+          - live
+          - mock
+          - cached
+          - estimated
+          title: Kind
+          type: string
+        licence:
+          title: Licence
+          type: string
+        role:
+          title: Role
+          type: string
+      required:
+      - id
+      - kind
+      - role
+      - licence
+      title: SourceInfo
+      type: object
     SourceMeta:
       additionalProperties: false
       properties:
@@ -322,6 +691,18 @@ components:
       - age_s
       - licence
       title: SourceMeta
+      type: object
+    SourcesData:
+      additionalProperties: false
+      properties:
+        sources:
+          items:
+            $ref: '#/components/schemas/SourceInfo'
+          title: Sources
+          type: array
+      required:
+      - sources
+      title: SourcesData
       type: object
     ValidationError:
       properties:
@@ -397,10 +778,60 @@ info:
   version: 0.1.0
 openapi: 3.1.0
 paths:
+  /v1/assumptions:
+    get:
+      description: Every coefficient the model uses, plus the mock data tables. Nothing
+        is hidden.
+      operationId: assumptions_v1_assumptions_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope_dict_str__Any__'
+          description: Successful Response
+      summary: Assumptions
+      tags:
+      - transparency
+  /v1/geocode:
+    get:
+      operationId: geocode_v1_geocode_get
+      parameters:
+      - in: query
+        name: q
+        required: true
+        schema:
+          maxLength: 100
+          minLength: 2
+          title: Q
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 5
+          maximum: 10
+          minimum: 1
+          title: Limit
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope_GeocodeData_'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Geocode
+      tags:
+      - places
   /v1/recommendations:
     post:
-      description: 'STUB (step 3): returns a fixed headline. The real engine replaces
-        this body in step 6.'
       operationId: create_recommendation_v1_recommendations_post
       requestBody:
         content:
@@ -424,3 +855,86 @@ paths:
       summary: Create Recommendation
       tags:
       - recommendations
+  /v1/recommendations/{rec_id}/calendar.ics:
+    get:
+      operationId: calendar_v1_recommendations__rec_id__calendar_ics_get
+      parameters:
+      - in: path
+        name: rec_id
+        required: true
+        schema:
+          title: Rec Id
+          type: string
+      - in: query
+        name: mode
+        required: true
+        schema:
+          enum:
+          - walk
+          - bike
+          - drive
+          - train
+          title: Mode
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Calendar
+      tags:
+      - recommendations
+  /v1/recommendations/{rec_id}/rescore:
+    post:
+      description: New confidence, priorities or constraints, answered from the stored
+        simulation. No provider is called.
+      operationId: rescore_recommendation_v1_recommendations__rec_id__rescore_post
+      parameters:
+      - in: path
+        name: rec_id
+        required: true
+        schema:
+          title: Rec Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RescoreRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope_RecommendationData_'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Rescore Recommendation
+      tags:
+      - recommendations
+  /v1/sources:
+    get:
+      operationId: sources_v1_sources_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope_SourcesData_'
+          description: Successful Response
+      summary: Sources
+      tags:
+      - transparency
