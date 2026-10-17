@@ -135,8 +135,13 @@ export default function RouteMap({
     drawn.current = key
     markers.current.forEach((mk) => mk.remove())
     markers.current = []
-    const add = (at: LatLon, el: HTMLElement, label?: string) => {
-      const mk = new maplibregl.Marker({ element: el }).setLngLat(ll(at) as LngLatLike)
+    const add = (at: LatLon, el: HTMLElement, label?: string, above = false) => {
+      // station labels sit above their point, so they never cover the start or destination pin beneath
+      const mk = new maplibregl.Marker({
+        element: el,
+        anchor: above ? "bottom" : "center",
+        offset: above ? [0, -8] : [0, 0],
+      }).setLngLat(ll(at) as LngLatLike)
       if (label) mk.setPopup(new maplibregl.Popup({ offset: 12, closeButton: false }).setText(label))
       markers.current.push(mk.addTo(m))
       el.tabIndex = -1 // decorative: the map's label already says where the pins are
@@ -146,7 +151,7 @@ export default function RouteMap({
     for (const s of lines.stations) {
       const el = pin("lb-station", s.name)
       el.textContent = s.name
-      add(s.at, el)
+      add(s.at, el, undefined, true)
     }
     ;(m.getSource("dotted") as GeoJSONSource).setData(multi(lines.dotted))
     const all = [route.origin as LatLon, route.destination as LatLon, ...lines.solid]

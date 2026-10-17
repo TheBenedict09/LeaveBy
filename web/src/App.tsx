@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { Cloud, Leaf } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { CalendarButton } from "@/components/CalendarButton"
@@ -54,6 +56,8 @@ export default function App() {
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const latest = useRef(0) // request counter: only the newest reply may land
+  const busy = useRef(false) // a search is in flight (a ref, so two clicks in the same tick both see it)
+  const [last, setLast] = useState<ComposerValue | null>(null) // the last search, for "Try again"
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
@@ -66,6 +70,9 @@ export default function App() {
   }, [])
 
   async function run(v: ComposerValue) {
+    if (busy.current) return // a second submit while the first is still running is ignored
+    busy.current = true
+    setLast(v)
     clearTimeout(timer.current)
     const n = ++latest.current
     setPicked(null)
@@ -92,6 +99,7 @@ export default function App() {
       setResult(null)
       setError(e instanceof Error ? e.message : "Something went wrong")
     } finally {
+      busy.current = false
       setLoading(false)
     }
   }
@@ -192,8 +200,16 @@ export default function App() {
           </Card>
 
           {error && (
-            <div role="alert" className="rounded-lg border border-risk/40 bg-risk/10 px-4 py-3 text-sm text-risk">
-              {error}
+            <div
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-risk/40 bg-risk/10 px-4 py-3 text-sm text-risk"
+            >
+              <span>{error}</span>
+              {last && !loading && (
+                <Button variant="outline" size="sm" onClick={() => run(last)}>
+                  Try again
+                </Button>
+              )}
             </div>
           )}
 
@@ -246,7 +262,12 @@ export default function App() {
               </div>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              {headline ? (
+              {loading && !data ? (
+                <div className="flex flex-col gap-2" aria-hidden>
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ) : headline ? (
                 <p>
                   {MODE_LABEL[headline.mode]}. On time in{" "}
                   <span className="font-mono text-safe">
