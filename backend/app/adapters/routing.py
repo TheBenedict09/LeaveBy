@@ -49,13 +49,14 @@ def parse_route(profile: str, payload: dict[str, Any]) -> Route:
 class RoutingAdapter:
     id = "osrm"
 
-    def __init__(self, client: httpx.AsyncClient, user_agent: str = USER_AGENT) -> None:
+    def __init__(self, client: httpx.AsyncClient, user_agent: str = USER_AGENT, min_interval_s: float = 1.0) -> None:
         self._client, self._ua = client, user_agent
+        self._min_interval_s = min_interval_s
         self._cache: TTLCache[Route] = TTLCache(ttl_s=24 * 3600)
         self._last_call = 0.0
 
     async def _throttle(self) -> None:
-        wait = 1.0 - (time.monotonic() - self._last_call)
+        wait = self._min_interval_s - (time.monotonic() - self._last_call)
         if wait > 0:
             await asyncio.sleep(wait)
         self._last_call = time.monotonic()

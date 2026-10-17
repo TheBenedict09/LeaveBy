@@ -3,8 +3,9 @@ from datetime import UTC, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core import clock
-from app.main import app
+from app.api.services import Services
+from app.core import clock, resilience
+from app.main import create_app
 
 FIXED_NOW = datetime(2026, 10, 17, 12, 0, tzinfo=UTC)
 
@@ -14,8 +15,15 @@ def frozen_clock(monkeypatch):
     monkeypatch.setattr(clock, "now", lambda: FIXED_NOW)
 
 
+@pytest.fixture(autouse=True)
+def no_retry_sleep(monkeypatch):
+    monkeypatch.setattr(resilience, "DEFAULT_BACKOFF_S", 0.0)
+
+
 @pytest.fixture
 def client():
+    """A fresh app per test (fresh caches), with the routing throttle off so tests are quick."""
+    app = create_app(Services.create(routing_interval_s=0.0))
     return TestClient(app, raise_server_exceptions=False)
 
 
