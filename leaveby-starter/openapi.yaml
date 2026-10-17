@@ -1,0 +1,426 @@
+components:
+  schemas:
+    Constraints:
+      additionalProperties: false
+      properties:
+        has_car:
+          default: false
+          title: Has Car
+          type: boolean
+        has_luggage:
+          default: false
+          title: Has Luggage
+          type: boolean
+        max_walk_m:
+          default: 1200
+          maximum: 20000.0
+          minimum: 0.0
+          title: Max Walk M
+          type: integer
+        step_free:
+          default: false
+          title: Step Free
+          type: boolean
+      title: Constraints
+      type: object
+    Envelope_RecommendationData_:
+      properties:
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/RecommendationData'
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/ErrorBody'
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+        ok:
+          title: Ok
+          type: boolean
+      required:
+      - ok
+      - meta
+      title: Envelope[RecommendationData]
+      type: object
+    ErrorBody:
+      additionalProperties: false
+      properties:
+        code:
+          enum:
+          - VALIDATION_ERROR
+          - NOT_FOUND
+          - RATE_LIMITED
+          - UPSTREAM_UNAVAILABLE
+          - INTERNAL
+          title: Code
+          type: string
+        detail:
+          title: Detail
+          type: string
+        fields:
+          default: []
+          items:
+            $ref: '#/components/schemas/FieldError'
+          title: Fields
+          type: array
+        status:
+          title: Status
+          type: integer
+        title:
+          title: Title
+          type: string
+        type:
+          title: Type
+          type: string
+      required:
+      - type
+      - title
+      - status
+      - code
+      - detail
+      title: ErrorBody
+      type: object
+    FieldError:
+      additionalProperties: false
+      properties:
+        message:
+          title: Message
+          type: string
+        path:
+          title: Path
+          type: string
+      required:
+      - path
+      - message
+      title: FieldError
+      type: object
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+          type: array
+      title: HTTPValidationError
+      type: object
+    Headline:
+      additionalProperties: false
+      properties:
+        leave_at:
+          format: date-time
+          title: Leave At
+          type: string
+        mode:
+          enum:
+          - walk
+          - bike
+          - drive
+          - train
+          title: Mode
+          type: string
+        on_time_scenarios:
+          minimum: 0.0
+          title: On Time Scenarios
+          type: integer
+        p_on_time:
+          maximum: 1.0
+          minimum: 0.0
+          title: P On Time
+          type: number
+        total_scenarios:
+          minimum: 1.0
+          title: Total Scenarios
+          type: integer
+      required:
+      - mode
+      - leave_at
+      - p_on_time
+      - on_time_scenarios
+      - total_scenarios
+      title: Headline
+      type: object
+    Meta:
+      additionalProperties: false
+      properties:
+        degraded:
+          default: false
+          title: Degraded
+          type: boolean
+        generated_at:
+          format: date-time
+          title: Generated At
+          type: string
+        request_id:
+          title: Request Id
+          type: string
+        seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Seed
+        sources:
+          default: []
+          items:
+            $ref: '#/components/schemas/SourceMeta'
+          title: Sources
+          type: array
+        warnings:
+          default: []
+          items:
+            $ref: '#/components/schemas/Warning'
+          title: Warnings
+          type: array
+      required:
+      - request_id
+      - generated_at
+      title: Meta
+      type: object
+    Options:
+      additionalProperties: false
+      properties:
+        explain:
+          default: template
+          enum:
+          - template
+          - llm
+          title: Explain
+          type: string
+        hedge:
+          default: true
+          title: Hedge
+          type: boolean
+        stress_test:
+          default: false
+          title: Stress Test
+          type: boolean
+      title: Options
+      type: object
+    Place:
+      additionalProperties: false
+      properties:
+        label:
+          maxLength: 100
+          minLength: 1
+          title: Label
+          type: string
+        lat:
+          maximum: 90.0
+          minimum: -90.0
+          title: Lat
+          type: number
+        lon:
+          maximum: 180.0
+          minimum: -180.0
+          title: Lon
+          type: number
+      required:
+      - label
+      - lat
+      - lon
+      title: Place
+      type: object
+    RecommendationData:
+      additionalProperties: false
+      properties:
+        assumptions_ref:
+          default: /v1/assumptions
+          title: Assumptions Ref
+          type: string
+        headline:
+          $ref: '#/components/schemas/Headline'
+        recommendation_id:
+          title: Recommendation Id
+          type: string
+      required:
+      - recommendation_id
+      - headline
+      title: RecommendationData
+      type: object
+    RecommendationRequest:
+      additionalProperties: false
+      properties:
+        arrive_by:
+          format: date-time
+          title: Arrive By
+          type: string
+        confidence:
+          default: 0.95
+          maximum: 0.99
+          minimum: 0.5
+          title: Confidence
+          type: number
+        constraints:
+          $ref: '#/components/schemas/Constraints'
+          default:
+            has_car: false
+            has_luggage: false
+            max_walk_m: 1200
+            step_free: false
+        destination:
+          $ref: '#/components/schemas/Place'
+        options:
+          $ref: '#/components/schemas/Options'
+          default:
+            explain: template
+            hedge: true
+            stress_test: false
+        origin:
+          $ref: '#/components/schemas/Place'
+        weights:
+          $ref: '#/components/schemas/Weights'
+          default:
+            accessibility: 0.2
+            carbon: 0.2
+            cost: 0.2
+            time: 0.4
+      required:
+      - origin
+      - destination
+      - arrive_by
+      title: RecommendationRequest
+      type: object
+    SourceMeta:
+      additionalProperties: false
+      properties:
+        age_s:
+          minimum: 0.0
+          title: Age S
+          type: integer
+        attribution:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Attribution
+        fetched_at:
+          format: date-time
+          title: Fetched At
+          type: string
+        id:
+          title: Id
+          type: string
+        kind:
+          enum:
+          - live
+          - mock
+          - cached
+          - estimated
+          title: Kind
+          type: string
+        latency_ms:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Latency Ms
+        licence:
+          title: Licence
+          type: string
+      required:
+      - id
+      - kind
+      - fetched_at
+      - age_s
+      - licence
+      title: SourceMeta
+      type: object
+    ValidationError:
+      properties:
+        ctx:
+          title: Context
+          type: object
+        input:
+          title: Input
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          title: Location
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+      type: object
+    Warning:
+      additionalProperties: false
+      properties:
+        code:
+          title: Code
+          type: string
+        message:
+          title: Message
+          type: string
+      required:
+      - code
+      - message
+      title: Warning
+      type: object
+    Weights:
+      additionalProperties: false
+      properties:
+        accessibility:
+          default: 0.2
+          maximum: 1.0
+          minimum: 0.0
+          title: Accessibility
+          type: number
+        carbon:
+          default: 0.2
+          maximum: 1.0
+          minimum: 0.0
+          title: Carbon
+          type: number
+        cost:
+          default: 0.2
+          maximum: 1.0
+          minimum: 0.0
+          title: Cost
+          type: number
+        time:
+          default: 0.4
+          maximum: 1.0
+          minimum: 0.0
+          title: Time
+          type: number
+      title: Weights
+      type: object
+info:
+  title: LeaveBy API
+  version: 0.1.0
+openapi: 3.1.0
+paths:
+  /v1/recommendations:
+    post:
+      description: 'STUB (step 3): returns a fixed headline. The real engine replaces
+        this body in step 6.'
+      operationId: create_recommendation_v1_recommendations_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope_RecommendationData_'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create Recommendation
+      tags:
+      - recommendations
