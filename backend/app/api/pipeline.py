@@ -7,6 +7,7 @@ import uuid
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from app.adapters.fallback import estimate_route, neutral_weather
 from app.api.schemas import (
@@ -415,16 +416,29 @@ def _esc(text: str) -> str:
     return text.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;")
 
 
-def make_ics(rec: Record, opt: OptionResult) -> str:
+def make_ics(rec: Record, opt: OptionResult, timezone: str) -> str:
     def stamp(ts: int) -> str:
         return _dt(ts).strftime("%Y%m%dT%H%M%SZ")
+
+    def hm(ts: int) -> str:
+        return _dt(ts).astimezone(ZoneInfo(timezone)).strftime("%H:%M")
 
     assert opt.summary.leave_by_ts is not None
     s = opt.summary
     summary = _esc(f"Leave for {rec.request.destination.label} ({opt.mode})")
-    description = _esc(
-        f"On time in {s.on_time_scenarios} of {s.total_scenarios} simulated mornings. Rail data is mock."
-    )
+    by = {"walk": "on foot", "bike": "by bike", "drive": "by car", "train": "by train"}
+    plan = [f"Leave at {hm(s.leave_by_ts)} {by[opt.mode]} to reach {rec.request.destination.label}."]
+    svc = _service(opt, rec)
+    if svc is not None:
+        dep, arr = int(svc.depart_at.timestamp()), int(svc.arrive_at.timestamp())
+        plan.append(f"Catch the {hm(dep)} {svc.operator} from {svc.from_station}, arrives {svc.to_station} {hm(arr)}.")
+    pct = round(100 * s.on_time_scenarios / s.total_scenarios)
+    plan.append(f"On time in {s.on_time_scenarios} of {s.total_scenarios} simulated journeys ({pct}%).")
+    h = rec.decision.hedge
+    if h is not None and opt is rec.decision.winner:
+        plan.append(f"Backup: leave at {hm(h.leave_by_ts)} {by[h.backup_mode]}.")
+    plan.append("Delays, fares and access are modelled; see the app's sources for what is real.")
+    description = "\\n".join(_esc(p) for p in plan)  # an escaped newline inside an iCalendar text value
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",

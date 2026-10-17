@@ -76,7 +76,7 @@ async def calendar(
     opt = next((o for o in rec.decision.options if o.mode == mode and o.feasible), None)
     if opt is None or opt.summary.leave_by_ts is None:
         raise HTTPException(status_code=404, detail=f"No leave-by time for {mode}")
-    return Response(content=pipeline.make_ics(rec, opt), media_type="text/calendar")
+    return Response(content=pipeline.make_ics(rec, opt, services.cfg.rail.timezone), media_type="text/calendar")
 
 
 @router.get("/v1/geocode", response_model=Envelope[GeocodeData], tags=["places"])

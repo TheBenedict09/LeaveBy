@@ -186,6 +186,8 @@ def test_calendar_download_has_a_leave_by_alarm(client, valid_request):
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/calendar")
     for needle in ("BEGIN:VCALENDAR", "BEGIN:VEVENT", "BEGIN:VALARM", "END:VCALENDAR"):
         assert needle in r.text
+    desc = next(line for line in r.text.splitlines() if line.startswith("DESCRIPTION:Leave at"))
+    assert "Catch the" in desc and "simulated journeys" in desc and "\\n" in desc and "mock." not in desc
     assert client.get(f"/v1/recommendations/{rid}/calendar.ics", params={"mode": "walk"}).status_code == 404
 
 
