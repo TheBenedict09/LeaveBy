@@ -253,3 +253,37 @@ body {
 .maplibregl-ctrl-attrib {
   font-size: 10px;
 }
+
+/* Header logo: three raindrops falling from the cloud, on a loop. Still under reduced motion. */
+.lb-drop {
+  position: absolute;
+  top: 17px;
+  width: 1.5px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--rain);
+  opacity: 0;
+  animation: lb-fall 1.35s ease-in infinite;
+}
+
+@keyframes lb-fall {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(9px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-drop {
+    animation: none;
+    opacity: 0.7;
+    transform: translateY(3px);
+  }
+}

@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react"
-import { CloudRain, Leaf } from "lucide-react"
+import { Cloud, Leaf } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { CalendarButton } from "@/components/CalendarButton"
 import { Journey } from "@/components/Journey"
+import { Reveal, RollingTime } from "@/components/Reveal"
 import { Composer } from "@/components/Composer"
 import { RainCloud } from "@/components/RainCloud"
 import { TradeOff } from "@/components/TradeOff"
@@ -142,9 +143,15 @@ export default function App() {
     <div className="min-h-screen">
       <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <CloudRain className="size-5 text-rain" aria-hidden />
+          <div className="flex items-center gap-3">
+            <span className="lb-logo relative inline-flex size-7 items-start justify-center" aria-hidden>
+              <Cloud className="size-6 text-rain" />
+              <span className="lb-drop" style={{ left: "30%", animationDelay: "0s" }} />
+              <span className="lb-drop" style={{ left: "52%", animationDelay: "0.45s" }} />
+              <span className="lb-drop" style={{ left: "74%", animationDelay: "0.9s" }} />
+            </span>
             <span className="text-lg font-semibold tracking-tight">LeaveBy</span>
+            <span className="hidden text-sm text-muted-foreground sm:inline">One app. One clear decision.</span>
           </div>
           <Badge variant="outline" className="gap-2 font-mono text-xs" role="status">
             <span className={`size-2 rounded-full ${API_DOT[api]}`} aria-hidden />
@@ -183,7 +190,15 @@ export default function App() {
                 aria-busy={updating}
                 aria-live="polite"
               >
-                {loading ? "Working..." : headline ? `Leave at ${fmtTime(headline.leave_at)}` : "--:--"}
+                {loading ? (
+                  "Working..."
+                ) : headline ? (
+                  <>
+                    Leave at <RollingTime key={result?.runId} text={fmtTime(headline.leave_at)} />
+                  </>
+                ) : (
+                  "--:--"
+                )}
               </CardTitle>
               {winner?.service && (
                 <p className="text-sm text-muted-foreground">
@@ -192,7 +207,7 @@ export default function App() {
                   <span className="font-mono text-foreground">{fmtTime(winner.service.arrive_at)}</span>.
                 </p>
               )}
-              {winner && result && <VerdictStats option={winner} meta={result.meta} />}
+              {winner && result && <VerdictStats key={result.runId} option={winner} meta={result.meta} />}
               {saved && (
                 <p className="flex items-center gap-1.5 text-sm text-safe">
                   <Leaf aria-hidden className="size-4" />
@@ -245,140 +260,150 @@ export default function App() {
           </Card>
 
           {data?.route && shown && result && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Your route{" "}
-                  {shown !== winner && <span className="text-muted-foreground">({MODE_LABEL[shown.mode]})</span>}
-                </CardTitle>
-                <CardDescription>
-                  {shown === winner
-                    ? "The recommended option, door to door. Pick another option below to compare."
-                    : "Showing the option you picked. "}
-                  {shown !== winner && (
-                    <button
-                      type="button"
-                      className="text-rain underline-offset-2 hover:underline"
-                      onClick={() => setPicked(null)}
-                    >
-                      Back to the recommendation
-                    </button>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6 lg:grid-cols-[1fr_15rem]">
-                <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-secondary/40 sm:h-80" />}>
-                  <RouteMap
-                    key={result.runId}
-                    route={data.route}
-                    mode={shown.mode}
-                    service={shown.service}
-                    still={still}
+            <Reveal key={result?.runId} order={1}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    Your route{" "}
+                    {shown !== winner && <span className="text-muted-foreground">({MODE_LABEL[shown.mode]})</span>}
+                  </CardTitle>
+                  <CardDescription>
+                    {shown === winner
+                      ? "The recommended option, door to door. Pick another option below to compare."
+                      : "Showing the option you picked. "}
+                    {shown !== winner && (
+                      <button
+                        type="button"
+                        className="text-rain underline-offset-2 hover:underline"
+                        onClick={() => setPicked(null)}
+                      >
+                        Back to the recommendation
+                      </button>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-6 lg:grid-cols-[1fr_15rem]">
+                  <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-secondary/40 sm:h-80" />}>
+                    <RouteMap
+                      key={result.runId}
+                      route={data.route}
+                      mode={shown.mode}
+                      service={shown.service}
+                      still={still}
+                    />
+                  </Suspense>
+                  <Journey
+                    option={shown}
+                    backup={shown === winner ? data.hedge : null}
+                    backupOption={backupOption}
+                    deadline={result.arriveBy}
+                    traffic={data.traffic}
                   />
-                </Suspense>
-                <Journey
-                  option={shown}
-                  backup={shown === winner ? data.hedge : null}
-                  backupOption={backupOption}
-                  deadline={result.arriveBy}
-                  traffic={data.traffic}
-                />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Reveal>
           )}
 
           {data && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Your priorities</CardTitle>
-                <CardDescription>
-                  Re-ranks the options instantly. Defaults match the recommendation above.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Priorities value={weights} onChange={prioritise} />
-              </CardContent>
-            </Card>
+            <Reveal key={result?.runId} order={2}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Your priorities</CardTitle>
+                  <CardDescription>
+                    Re-ranks the options instantly. Defaults match the recommendation above.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Priorities value={weights} onChange={prioritise} />
+                </CardContent>
+              </Card>
+            </Reveal>
           )}
 
           {data && headline && result && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">What if I leave later?</CardTitle>
-                <CardDescription>
-                  Slide to see how your chances change. Uses the same simulated mornings.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <LeaveLater
-                  key={`${result.runId}-${headline.leave_at}`}
-                  options={data.options}
-                  leaveAt={headline.leave_at}
-                  confidence={result.confidence / 100}
-                />
-              </CardContent>
-            </Card>
+            <Reveal key={result?.runId} order={3}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">What if I leave later?</CardTitle>
+                  <CardDescription>
+                    Slide to see how your chances change. Uses the same simulated mornings.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <LeaveLater
+                    key={`${result.runId}-${headline.leave_at}`}
+                    options={data.options}
+                    leaveAt={headline.leave_at}
+                    confidence={result.confidence / 100}
+                  />
+                </CardContent>
+              </Card>
+            </Reveal>
           )}
 
           {data?.hedge && (
-            <Card>
-              <CardHeader>
-                <CardDescription>Backup plan</CardDescription>
-                <CardTitle className="text-xl">
-                  Or leave at <span className="font-mono">{fmtTime(data.hedge.leave_at)}</span>{" "}
-                  {MODE_LABEL[data.hedge.backup_mode]}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Both plans fail together in{" "}
-                <span className={`font-mono ${data.hedge.both_late_scenarios ? "text-risk" : "text-safe"}`}>
-                  {data.hedge.both_late_scenarios.toLocaleString()} of {data.hedge.total_scenarios.toLocaleString()}
-                </span>{" "}
-                simulated journeys.
-              </CardContent>
-            </Card>
+            <Reveal key={result?.runId} order={4}>
+              <Card>
+                <CardHeader>
+                  <CardDescription>Backup plan</CardDescription>
+                  <CardTitle className="text-xl">
+                    Or leave at <span className="font-mono">{fmtTime(data.hedge.leave_at)}</span>{" "}
+                    {MODE_LABEL[data.hedge.backup_mode]}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Both plans fail together in{" "}
+                  <span className={`font-mono ${data.hedge.both_late_scenarios ? "text-risk" : "text-safe"}`}>
+                    {data.hedge.both_late_scenarios.toLocaleString()} of {data.hedge.total_scenarios.toLocaleString()}
+                  </span>{" "}
+                  simulated journeys.
+                </CardContent>
+              </Card>
+            </Reveal>
           )}
 
           {data && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">All options</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <TradeOff options={data.options} confidence={(result?.confidence ?? 95) / 100} />
-                <ul className="divide-y divide-border/60">
-                  {data.options.map((o) => (
-                    <motion.li
-                      key={o.mode}
-                      layout={!still}
-                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                      className="flex items-center justify-between gap-4 py-2 text-sm"
-                    >
-                      <button
-                        type="button"
-                        disabled={!o.feasible}
-                        aria-pressed={shown?.mode === o.mode}
-                        aria-label={o.feasible ? `Show ${MODE_LABEL[o.mode]} on the map` : undefined}
-                        onClick={() => setPicked(o.mode)}
-                        className={`flex items-center gap-2 rounded-md px-1 font-medium ${o.feasible ? "hover:text-rain" : "cursor-default"} ${shown?.mode === o.mode ? "text-rain" : ""}`}
+            <Reveal key={result?.runId} order={5}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">All options</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <TradeOff options={data.options} confidence={(result?.confidence ?? 95) / 100} />
+                  <ul className="divide-y divide-border/60">
+                    {data.options.map((o) => (
+                      <motion.li
+                        key={o.mode}
+                        layout={!still}
+                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                        className="flex items-center justify-between gap-4 py-2 text-sm"
                       >
-                        <span
-                          className={`grid size-5 place-items-center rounded-full font-mono text-xs ${o.rank === 1 ? "bg-rain text-background" : "bg-secondary text-muted-foreground"}`}
+                        <button
+                          type="button"
+                          disabled={!o.feasible}
+                          aria-pressed={shown?.mode === o.mode}
+                          aria-label={o.feasible ? `Show ${MODE_LABEL[o.mode]} on the map` : undefined}
+                          onClick={() => setPicked(o.mode)}
+                          className={`flex items-center gap-2 rounded-md px-1 font-medium ${o.feasible ? "hover:text-rain" : "cursor-default"} ${shown?.mode === o.mode ? "text-rain" : ""}`}
                         >
-                          {o.rank ?? "–"}
+                          <span
+                            className={`grid size-5 place-items-center rounded-full font-mono text-xs ${o.rank === 1 ? "bg-rain text-background" : "bg-secondary text-muted-foreground"}`}
+                          >
+                            {o.rank ?? "–"}
+                          </span>
+                          {MODE_LABEL[o.mode]}
+                        </button>
+                        <span className="text-right text-muted-foreground">
+                          {o.feasible && o.leave_by
+                            ? `leave ${fmtTime(o.leave_by)} · ${pct(o.p_on_time)} on time · £${o.cost_gbp.toFixed(2)}`
+                            : o.infeasible_reason}
                         </span>
-                        {MODE_LABEL[o.mode]}
-                      </button>
-                      <span className="text-right text-muted-foreground">
-                        {o.feasible && o.leave_by
-                          ? `leave ${fmtTime(o.leave_by)} · ${pct(o.p_on_time)} on time · £${o.cost_gbp.toFixed(2)}`
-                          : o.infeasible_reason}
-                      </span>
-                    </motion.li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </Reveal>
           )}
 
           {result ? (

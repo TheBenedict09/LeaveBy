@@ -1,4 +1,6 @@
+import type { ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
+import { Ticker } from "@/components/Reveal"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Meta, Option } from "@/lib/types"
 
@@ -21,9 +23,9 @@ export function VerdictStats({ option, meta }: { option: Option; meta: Meta }) {
 
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-      <Stat label="Cost" value={`£${option.cost_gbp.toFixed(2)}`} />
-      <Stat label="CO2e" value={`${option.co2e_kg.toFixed(1)} kg`} />
-      <Stat label="Access score" value={option.accessibility.score.toFixed(2)} />
+      <Stat label="Cost" value={<Ticker value={option.cost_gbp} format={(v) => `£${v.toFixed(2)}`} />} />
+      <Stat label="CO2e" value={<Ticker value={option.co2e_kg} format={(v) => `${v.toFixed(1)} kg`} />} />
+      <Stat label="Access score" value={<Ticker value={option.accessibility.score} format={(v) => v.toFixed(2)} />} />
       {estimated.length > 0 && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -42,7 +44,7 @@ export function VerdictStats({ option, meta }: { option: Option; meta: Meta }) {
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <span className="text-muted-foreground">
       {label} <span className="font-mono text-foreground">{value}</span>
