@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CloudRain } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Composer } from "@/components/Composer"
 import { RainCloud } from "@/components/RainCloud"
-import { createRecommendation } from "@/lib/api"
+import { VerdictStats } from "@/components/VerdictStats"
+import { ApiFailure, createRecommendation, rescore } from "@/lib/api"
 import { arriveByIso, fmtTime, MODE_LABEL, pct } from "@/lib/format"
 import type { ComposerValue, Meta, RecommendationData } from "@/lib/types"
 
@@ -26,9 +27,19 @@ const API_DOT: Record<ApiState, string> = {
 export default function App() {
   const [api, setApi] = useState<ApiState>("checking")
   const [confidence, setConfidence] = useState([95])
-  const [result, setResult] = useState<{ data: RecommendationData; meta: Meta; arriveBy: string } | null>(null)
+  // runId changes only on a new search, so rescoring never replays the chart intro or scrolls.
+  const [result, setResult] = useState<{
+    data: RecommendationData
+    meta: Meta
+    arriveBy: string
+    runId: string
+    confidence: number
+  } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const latest = useRef(0) // request counter: only the newest reply may land
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
     fetch("/healthz")
@@ -37,6 +48,9 @@ export default function App() {
   }, [])
 
   async function run(v: ComposerValue) {
+    clearTimeout(timer.current)
+    const n = ++latest.current
+    setUpdating(false)
     setLoading(true)
     setError(null)
     try {
@@ -48,8 +62,10 @@ export default function App() {
         confidence: confidence[0] / 100,
         constraints: { step_free: false, max_walk_m: 1200, max_bike_m: 25000, has_luggage: false, has_car: v.hasCar },
       })
-      setResult({ ...res, arriveBy })
+      if (n !== latest.current) return
+      setResult({ ...res, arriveBy, runId: res.data.recommendation_id, confidence: confidence[0] })
     } catch (e) {
+      if (n !== latest.current) return
       setResult(null)
       setError(e instanceof Error ? e.message : "Something went wrong")
     } finally {
@@ -57,8 +73,39 @@ export default function App() {
     }
   }
 
+  // The slider re-decides live from the stored simulation, once it rests for 250 ms.
+  function slide(v: number[]) {
+    setConfidence(v)
+    if (!result) return
+    clearTimeout(timer.current)
+    timer.current = setTimeout(async () => {
+      const n = ++latest.current
+      setUpdating(true)
+      try {
+        const res = await rescore(result.data.recommendation_id, { confidence: v[0] / 100 })
+        if (n !== latest.current) return
+        setError(null)
+        setResult((r) => r && { ...r, data: res.data, meta: res.meta, confidence: v[0] })
+      } catch (e) {
+        if (n !== latest.current) return
+        setError(
+          e instanceof ApiFailure && e.code === "NOT_FOUND"
+            ? "This result has expired. Search again to keep adjusting it."
+            : e instanceof Error
+              ? e.message
+              : "Something went wrong",
+        )
+      } finally {
+        if (n === latest.current) setUpdating(false)
+      }
+    }, 250)
+  }
+
+  useEffect(() => () => clearTimeout(timer.current), [])
+
   const data = result?.data ?? null
   const headline = data?.headline ?? null
+  const winner = headline ? data?.options.find((o) => o.mode === headline.mode) : undefined
 
   return (
     <div className="min-h-screen">
@@ -101,11 +148,13 @@ export default function App() {
             <CardHeader>
               <CardDescription>Your verdict</CardDescription>
               <CardTitle
-                className={`font-mono text-5xl font-semibold tracking-tight ${headline ? "" : "text-muted-foreground"}`}
+                className={`font-mono text-5xl font-semibold tracking-tight transition-opacity ${headline ? "" : "text-muted-foreground"} ${updating ? "opacity-50" : ""}`}
+                aria-busy={updating}
                 aria-live="polite"
               >
                 {loading ? "Working..." : headline ? `Leave at ${fmtTime(headline.leave_at)}` : "--:--"}
               </CardTitle>
+              {winner && result && <VerdictStats option={winner} meta={result.meta} />}
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               {headline ? (
@@ -118,7 +167,8 @@ export default function App() {
                 </p>
               ) : data ? (
                 <p>
-                  No option reaches {confidence[0]}% for this journey. Try a lower confidence or a later arrival time.
+                  No option reaches {result?.confidence}% for this journey. Try a lower confidence or a later arrival
+                  time.
                 </p>
               ) : (
                 <p>
@@ -180,11 +230,7 @@ export default function App() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RainCloud
-                  options={result.data.options}
-                  deadline={result.arriveBy}
-                  runId={result.data.recommendation_id}
-                />
+                <RainCloud options={result.data.options} deadline={result.arriveBy} runId={result.runId} />
               </CardContent>
             </Card>
           ) : (
@@ -200,13 +246,13 @@ export default function App() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">How sure do you want to be?</CardTitle>
-              <CardDescription>Higher means leaving earlier. Applied when you search.</CardDescription>
+              <CardDescription>Higher means leaving earlier. Your leave-by time moves as you slide.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="font-mono text-3xl text-rain">{confidence[0]}%</div>
               <Slider
                 value={confidence}
-                onValueChange={setConfidence}
+                onValueChange={slide}
                 min={50}
                 max={99}
                 step={1}

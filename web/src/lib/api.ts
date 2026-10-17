@@ -1,4 +1,4 @@
-import type { Envelope, Meta, RecommendationData, RecommendationRequest } from "@/lib/types"
+import type { Envelope, Meta, RecommendationData, RecommendationRequest, RescoreRequest } from "@/lib/types"
 
 export class ApiFailure extends Error {
   code: string
@@ -24,4 +24,12 @@ async function call<T>(path: string, init?: RequestInit): Promise<{ data: T; met
 
 export function createRecommendation(req: RecommendationRequest) {
   return call<RecommendationData>("/v1/recommendations", { method: "POST", body: JSON.stringify(req) })
+}
+
+/** Re-decide a stored recommendation with new settings. No weather or routing call is made. */
+export function rescore(id: string, req: RescoreRequest) {
+  return call<RecommendationData>(`/v1/recommendations/${encodeURIComponent(id)}/rescore`, {
+    method: "POST",
+    body: JSON.stringify(req),
+  })
 }

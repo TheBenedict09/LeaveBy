@@ -30,6 +30,13 @@ export interface RecommendationRequest {
   constraints?: Constraints
 }
 
+/** Any field left out keeps the value from the original request. */
+export interface RescoreRequest {
+  confidence?: number
+  weights?: Weights
+  constraints?: Constraints
+}
+
 export interface Headline {
   mode: Mode
   leave_at: string
