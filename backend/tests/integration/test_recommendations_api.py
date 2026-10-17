@@ -217,6 +217,9 @@ def test_sources_and_assumptions_are_public(client):
     assert any(x["id"] == "rdg-timetable" and "Rail Delivery Group" in x["attribution"] for x in s)
     a = client.get("/v1/assumptions").json()["data"]
     assert a["model"]["rail"]["calm_within_5min_target"] == 0.865 and a["model"]["rail"]["calm_target_sources"]
+    tt = a["rail_timetable"]
+    assert "Rail Delivery Group" in tt["source"] and tt["valid_from"] < tt["valid_to"]
+    assert "Glasgow Central" in tt["stations"]
     assert "placeholder" in a["model"]["status"] and a["mock_data"]["kind"] == "mock"
     assert a["model"]["noise"]["sigma"]["drive"] > 0
 

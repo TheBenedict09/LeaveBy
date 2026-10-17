@@ -66,6 +66,20 @@ REGISTRY = [
         attribution="Geocoding by Open-Meteo.com",
     ),
     SourceInfo(
+        id="tomtom-live",
+        kind="live",
+        role="Car travel time with live traffic, and incidents near the route (trips leaving within 2 hours)",
+        licence="TomTom developer terms",
+        attribution="Traffic by TomTom",
+    ),
+    SourceInfo(
+        id="tomtom-predicted",
+        kind="live",
+        role="Car travel time with TomTom's predicted traffic for the departure time (later trips)",
+        licence="TomTom developer terms",
+        attribution="Traffic by TomTom",
+    ),
+    SourceInfo(
         id="desnz-ghg-2026",
         kind="static",
         role="Carbon per km (UK Government GHG conversion factors 2026)",
@@ -84,6 +98,7 @@ REGISTRY = [
         for sid, role, lic in [
             ("mock-rail", "Trains where the real timetable does not reach", MOCK_SOURCES["mock-rail"]),
             ("mock-rail-delays", "Train delays", MOCK_SOURCES["mock-rail-delays"]),
+            ("simulated-incident", "Demo accident on the car route (only when switched on)", "Demo only"),
             ("mock-fares", "Fares and running costs", MOCK_SOURCES["mock-fares"]),
             ("mock-accessibility", "Step-free access and effort", MOCK_SOURCES["mock-accessibility"]),
         ]

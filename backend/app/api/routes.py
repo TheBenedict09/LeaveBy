@@ -107,5 +107,11 @@ async def sources(request: Request) -> dict[str, Any]:
 
 @router.get("/v1/assumptions", response_model=Envelope[dict[str, Any]], tags=["transparency"])
 async def assumptions(request: Request, services: Services = Depends(get_services)) -> dict[str, Any]:  # noqa: B008
-    """Every coefficient the model uses, plus the mock data tables. Nothing is hidden."""
-    return _ok(request, {"model": services.cfg.model_dump(), "mock_data": services.data.model_dump()})
+    """Every coefficient the model uses, the mock data tables and the real timetable's validity. Nothing is hidden."""
+    tt = services.timetable
+    timetable = None
+    if tt is not None:
+        timetable = {"source": tt.source, "release": tt.release, "valid_from": tt.valid_from, "valid_to": tt.valid_to}
+        timetable["stations"] = sorted(s.name for s in tt.stations.values())
+    payload = {"model": services.cfg.model_dump(), "mock_data": services.data.model_dump(), "rail_timetable": timetable}
+    return _ok(request, payload)

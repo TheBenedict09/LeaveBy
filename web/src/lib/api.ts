@@ -45,3 +45,29 @@ export function rescore(id: string, req: RescoreRequest) {
 export function searchPlaces(q: string, limit: number) {
   return call<GeocodeData>(`/v1/geocode?${new URLSearchParams({ q, limit: String(limit) })}`)
 }
+
+export interface SourceInfo {
+  id: string
+  kind: string
+  role: string
+  licence: string
+  attribution?: string | null
+}
+
+export function getSources() {
+  return call<{ sources: SourceInfo[] }>("/v1/sources")
+}
+
+/** The parts of /v1/assumptions the UI reads (the endpoint serves every coefficient). */
+export interface Assumptions {
+  model: {
+    noise: { n_draws: number }
+    rail: { station_radius_m: number; calm_within_5min_target: number; calm_target_sources: string[] }
+    emissions: { source: string }
+  }
+  rail_timetable: { source: string; release: string; valid_from: string; valid_to: string } | null
+}
+
+export function getAssumptions() {
+  return call<Assumptions>("/v1/assumptions")
+}
