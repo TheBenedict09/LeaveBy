@@ -304,7 +304,7 @@ export default function App() {
           </Card>
 
           {data?.route && shown && result && (
-            <Reveal key={result?.runId} order={1}>
+            <Reveal key={`route-${result?.runId}`} order={1}>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">
@@ -349,7 +349,7 @@ export default function App() {
           )}
 
           {data && (
-            <Reveal key={result?.runId} order={2}>
+            <Reveal key={`priorities-${result?.runId}`} order={2}>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Your priorities</CardTitle>
@@ -365,7 +365,7 @@ export default function App() {
           )}
 
           {data && headline && result && (
-            <Reveal key={result?.runId} order={3}>
+            <Reveal key={`leave-later-${result?.runId}`} order={3}>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">What if I leave later?</CardTitle>
@@ -386,7 +386,7 @@ export default function App() {
           )}
 
           {data?.hedge && (
-            <Reveal key={result?.runId} order={4}>
+            <Reveal key={`backup-${result?.runId}`} order={4}>
               <Card>
                 <CardHeader>
                   <CardDescription>Backup plan</CardDescription>
@@ -407,7 +407,7 @@ export default function App() {
           )}
 
           {data && (
-            <Reveal key={result?.runId} order={5}>
+            <Reveal key={`options-${result?.runId}`} order={5}>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">All options</CardTitle>

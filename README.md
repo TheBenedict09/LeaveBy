@@ -62,6 +62,8 @@ make openapi     # regenerate openapi.yaml from the API (the contract test fails
 cd web && npm run lint && npm run build
 ```
 
+`node scripts/check_no_duplicate_cards.mjs` (with the API and web dev server running, and Chrome installed) checks that every result card appears once after repeated searches and calendar clicks.
+
 `make rail-data` rebuilds `data/rail_timetable.json` from the national timetable (downloads about 31 MB into the git-ignored `data/cache/`). You only need it to refresh the timetable.
 
 ## Data sources
