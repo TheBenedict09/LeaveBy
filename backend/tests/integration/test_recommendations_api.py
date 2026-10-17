@@ -64,13 +64,15 @@ def test_happy_path_returns_a_ranked_decision_with_provenance(client, valid_requ
     assert [o["rank"] for o in ranked] == list(range(1, len(ranked) + 1))
     assert all(o["p_on_time"] >= 0.95 for o in ranked)
     assert data["headline"]["mode"] == ranked[0]["mode"]
-    assert data["headline"]["total_scenarios"] == 51
+    assert data["headline"]["total_scenarios"] == 51 * 40
     assert data["explanation"]["because"]
     assert data["hedge"] is not None and data["hedge"]["backup_mode"] != data["headline"]["mode"]
 
     walk = mode(data, "walk")  # 77 km on foot is beyond the default 1200 m limit
     assert walk["feasible"] is False and walk["infeasible_reason"] == "Further than your walking limit"
     assert walk["rank"] is None and walk["leave_by"] is None
+    bike = mode(data, "bike")  # 75 km by bike is beyond the default 25 km cycling limit
+    assert bike["feasible"] is False and bike["infeasible_reason"] == "Further than your cycling limit"
 
 
 @respx.mock

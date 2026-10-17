@@ -47,6 +47,7 @@ class Weights(Strict):
 class Constraints(Strict):
     step_free: bool = False
     max_walk_m: int = Field(1200, ge=0, le=20000)
+    max_bike_m: int = Field(25000, ge=0, le=200000)
     has_luggage: bool = False
     has_car: bool = False
 

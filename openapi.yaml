@@ -65,6 +65,12 @@ components:
           default: false
           title: Has Luggage
           type: boolean
+        max_bike_m:
+          default: 25000
+          maximum: 200000.0
+          minimum: 0.0
+          title: Max Bike M
+          type: integer
         max_walk_m:
           default: 1200
           maximum: 20000.0
@@ -567,6 +573,7 @@ components:
           default:
             has_car: false
             has_luggage: false
+            max_bike_m: 25000
             max_walk_m: 1200
             step_free: false
         destination:

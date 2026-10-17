@@ -164,7 +164,9 @@ def test_infeasible_mode_is_reported_not_hidden():
 
 def test_summary_counts_are_consistent():
     s = summarise(run(w=weather(precip=3.0)), DEADLINE, 0.9)
-    assert s.total_scenarios == M == len(s.scenario_arrivals)
+    assert s.total_scenarios == M * K
+    assert len(s.scenario_arrivals) == M
+    assert s.on_time_scenarios / s.total_scenarios == pytest.approx(s.p_on_time)
     assert 0 <= s.on_time_scenarios <= s.total_scenarios
     assert s.arrival_p05 <= s.arrival_p50 <= s.arrival_p95
 
@@ -178,6 +180,6 @@ def test_engine_runs_on_real_forecast_and_real_route():
     deps = departure_grid(deadline, base, cfg)
     sim = simulate("drive", base, 81.0, w, deps, make_noise(seed_from("real"), w.n_members, cfg.noise.n_draws), cfg)
     s = summarise(sim, deadline, 0.95)
-    assert s.total_scenarios == 51
+    assert s.total_scenarios == 51 * cfg.noise.n_draws
     assert s.feasible and s.leave_by_ts < deadline - base * 0.9
     assert 0.95 <= s.p_on_time <= 1.0

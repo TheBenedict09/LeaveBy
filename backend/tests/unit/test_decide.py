@@ -48,6 +48,12 @@ def test_walking_limit_is_a_hard_constraint():
     assert not walk.feasible and "walking limit" in walk.infeasible_reason
 
 
+def test_cycling_limit_is_a_hard_constraint():
+    d = decide(sim(), problem(max_bike_m=5_000))
+    bike = next(o for o in d.options if o.mode == "bike")
+    assert not bike.feasible and bike.infeasible_reason == "Further than your cycling limit"
+
+
 def test_step_free_requirement_excludes_non_step_free_modes():
     data = load_mock_data().model_copy(deep=True)
     data.accessibility["train"].step_free = False
