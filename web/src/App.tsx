@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Composer } from "@/components/Composer"
+import { RainCloud } from "@/components/RainCloud"
 import { createRecommendation } from "@/lib/api"
 import { arriveByIso, fmtTime, MODE_LABEL, pct } from "@/lib/format"
 import type { ComposerValue, Meta, RecommendationData } from "@/lib/types"
@@ -25,7 +26,7 @@ const API_DOT: Record<ApiState, string> = {
 export default function App() {
   const [api, setApi] = useState<ApiState>("checking")
   const [confidence, setConfidence] = useState([95])
-  const [result, setResult] = useState<{ data: RecommendationData; meta: Meta } | null>(null)
+  const [result, setResult] = useState<{ data: RecommendationData; meta: Meta; arriveBy: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,15 +40,15 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      setResult(
-        await createRecommendation({
-          origin: v.origin,
-          destination: v.destination,
-          arrive_by: arriveByIso(v.dayOffset, v.time),
-          confidence: confidence[0] / 100,
-          constraints: { step_free: false, max_walk_m: 1200, max_bike_m: 25000, has_luggage: false, has_car: v.hasCar },
-        }),
-      )
+      const arriveBy = arriveByIso(v.dayOffset, v.time)
+      const res = await createRecommendation({
+        origin: v.origin,
+        destination: v.destination,
+        arrive_by: arriveBy,
+        confidence: confidence[0] / 100,
+        constraints: { step_free: false, max_walk_m: 1200, max_bike_m: 25000, has_luggage: false, has_car: v.hasCar },
+      })
+      setResult({ ...res, arriveBy })
     } catch (e) {
       setResult(null)
       setError(e instanceof Error ? e.message : "Something went wrong")
@@ -169,11 +170,26 @@ export default function App() {
             </Card>
           )}
 
-          <Card className="border-dashed">
-            <CardContent className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-              The raincloud goes here
-            </CardContent>
-          </Card>
+          {result ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Every simulated journey</CardTitle>
+                <CardDescription>
+                  Each dot is one possible morning if you leave at the suggested time. Mint arrives in time, coral is
+                  late.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RainCloud options={result.data.options} deadline={result.arriveBy} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="flex h-72 items-center justify-center text-sm text-muted-foreground">
+                Your simulated journeys will appear here
+              </CardContent>
+            </Card>
+          )}
         </section>
 
         <aside className="flex flex-col gap-6" aria-label="Controls">
