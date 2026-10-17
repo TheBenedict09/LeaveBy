@@ -93,7 +93,7 @@ class Decision:
     flips: list[FlipPoint] = field(default_factory=list)
 
 
-def _facts(mode: str, distance_m: float, data: MockData) -> ModeFacts:
+def _facts(mode: str, distance_m: float, data: MockData, cfg: ModelConfig) -> ModeFacts:
     km = distance_m / 1000.0
     if mode == "train":
         cost = data.fares.train_base_gbp + data.fares.train_per_km_gbp * km
@@ -102,7 +102,7 @@ def _facts(mode: str, distance_m: float, data: MockData) -> ModeFacts:
     else:
         cost = 0.0
     a = data.accessibility[mode]
-    return ModeFacts(distance_m, cost, data.emissions_kg_per_km[mode] * km, a.effort, a.step_free, a.luggage_factor)
+    return ModeFacts(distance_m, cost, cfg.emissions.kg_co2e_per_km[mode] * km, a.effort, a.step_free, a.luggage_factor)
 
 
 def simulate_all(
@@ -124,7 +124,7 @@ def simulate_all(
         r = routes[mode]
         deps = departure_grid(deadline_ts, r.duration_s, cfg)
         sims[mode] = simulate(mode, r.duration_s, r.bearing_deg, weather, deps, z, cfg)
-        facts[mode] = _facts(mode, r.distance_m, data)
+        facts[mode] = _facts(mode, r.distance_m, data, cfg)
     rail_m = routes["drive"].distance_m
     noise = make_rail_noise(seed, n_members, n_draws)
     services = None
@@ -140,7 +140,7 @@ def simulate_all(
     else:  # no usable schedule: the generated timetable keeps the option's shape (and is overruled if no service)
         deps, cut_early = train_departures(deadline_ts, rail_m, cfg)
         sims["train"] = simulate_train(rail_m, weather, deps, noise, cfg)
-    facts["train"] = _facts("train", rail_m, data)
+    facts["train"] = _facts("train", rail_m, data, cfg)
     no_service = schedule is not None and not schedule.deps.size
     return Simulation(deadline_ts, seed, n_members, n_draws, sims, facts, cut_early, no_service, services)
 

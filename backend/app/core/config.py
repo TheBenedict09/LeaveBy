@@ -74,6 +74,13 @@ class RailCfg(_Cfg):
     max_delay_prob: float
 
 
+class EmissionsCfg(_Cfg):
+    source: str
+    url: str
+    licence: str
+    kg_co2e_per_km: dict[str, float]
+
+
 class ModelConfig(_Cfg):
     status: str
     grid: GridCfg
@@ -83,6 +90,7 @@ class ModelConfig(_Cfg):
     drive: DriveCfg
     walk: WalkCfg
     rail: RailCfg
+    emissions: EmissionsCfg
 
 
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "model.yaml"
