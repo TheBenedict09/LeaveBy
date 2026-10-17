@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
+import { CalendarButton } from "@/components/CalendarButton"
 import { Composer } from "@/components/Composer"
 import { RainCloud } from "@/components/RainCloud"
 import { TradeOff } from "@/components/TradeOff"
@@ -191,7 +192,12 @@ export default function App() {
                 </p>
               )}
               {data?.traffic && <TrafficLine traffic={data.traffic} />}
-              {data && result && <SourcesDrawer meta={result.meta} data={data} confidence={result.confidence} />}
+              <div className="flex flex-wrap items-center gap-3">
+                {headline && result && (
+                  <CalendarButton id={result.data.recommendation_id} mode={headline.mode} onError={setError} />
+                )}
+                {data && result && <SourcesDrawer meta={result.meta} data={data} confidence={result.confidence} />}
+              </div>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               {headline ? (

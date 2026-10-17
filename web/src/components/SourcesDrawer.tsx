@@ -50,7 +50,7 @@ export function SourcesDrawer({
   return (
     <Sheet onOpenChange={(open) => open && !info && load()}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="self-start px-0 text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
           <BookOpen />
           Sources and assumptions
         </Button>
