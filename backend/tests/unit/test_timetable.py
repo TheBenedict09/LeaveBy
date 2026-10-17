@@ -169,6 +169,14 @@ def test_a_deadline_before_the_first_real_train_gets_the_plain_reason(out):
     assert not train.feasible and train.infeasible_reason == "No train runs early enough"
 
 
+def test_a_train_that_can_make_it_but_not_reliably_says_confidence_not_too_early(out):
+    # The 07:45 reaches the door about 08:45: on time on most mornings for 08:50, but not 90% of them
+    _, d = run(out, at(2026, 11, 2, 8, 50))
+    train = next(o for o in d.options if o.mode == "train")
+    assert 0 < train.summary.p_on_time < 0.9
+    assert train.infeasible_reason == "No train meets 90% confidence for this arrival time"
+
+
 def test_a_day_without_direct_trains_says_so(out):
     _, d = run(out, at(2026, 11, 7, 11))  # Saturday
     train = next(o for o in d.options if o.mode == "train")

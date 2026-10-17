@@ -187,7 +187,11 @@ def decide(sim: Simulation, problem: Problem) -> Decision:
     if sim.train_no_service and soft:
         reasons["train"] = "No direct train runs that day"
     elif sim.train_cut_early and reasons["train"] and soft:
-        reasons["train"] = "No train runs early enough"
+        # Some train could make it on some mornings, just not reliably enough: say so, rather than "too late".
+        if summaries["train"].p_on_time > 0:
+            reasons["train"] = f"No train meets {round(problem.confidence * 100)}% confidence for this arrival time"
+        else:
+            reasons["train"] = "No train runs early enough"
     feasible = [m for m in MODES if reasons[m] is None]
 
     raw = {m: _criteria(summaries[m], sim.facts[m], problem) for m in feasible}
