@@ -350,3 +350,26 @@ def test_another_server_rebuilds_an_unknown_id_from_the_original_request(valid_r
     body = {"mode": data["headline"]["mode"], "confidence": 0.95, "original": req}
     ics = late.post(f"/v1/recommendations/{rid}/calendar.ics", json=body)
     assert ics.status_code == 200 and "BEGIN:VEVENT" in ics.text
+
+
+def test_a_deadline_in_the_past_is_rejected_with_a_plain_reason(client, valid_request):
+    valid_request["arrive_by"] = "2026-10-17T12:30:00+01:00"  # 11:30 UTC, before the frozen 12:00 UTC now
+    r = client.post("/v1/recommendations", json=valid_request)
+    assert r.status_code == 422
+    assert "in the future" in r.json()["error"]["detail"]
+
+
+@respx.mock
+def test_a_trip_later_today_only_offers_departures_from_now(client, valid_request):
+    stub()
+    valid_request["arrive_by"] = "2026-10-17T16:00:00+01:00"  # three hours after the frozen now, same day
+    r = client.post("/v1/recommendations", json=with_car(valid_request))
+    assert r.status_code == 200
+    data = r.json()["data"]
+    now = when("2026-10-17T12:00:00+00:00")
+    assert data["headline"] is not None
+    for o in data["options"]:
+        if o["leave_by"]:
+            assert when(o["leave_by"]) >= now
+        if o.get("service"):
+            assert when(o["service"]["depart_at"]) > now

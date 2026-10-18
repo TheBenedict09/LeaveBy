@@ -1,16 +1,17 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowRight, ArrowUpDown, CalendarDays, Car, Clock, Loader2, MapPin, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { PlaceField } from "@/components/PlaceField"
 import { PLACES } from "@/lib/places"
+import { arriveByIso } from "@/lib/format"
 import type { ComposerValue, Place } from "@/lib/types"
 
 const place =
   "w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-muted-foreground/60"
 
-const DAYS = ["Tomorrow", "In 2 days", "In 3 days"]
+const DAYS = ["Today", "Tomorrow", "In 2 days", "In 3 days"] // index = days from today, in UK time
 
 const label = "text-xs font-medium tracking-wide text-muted-foreground uppercase"
 
@@ -47,19 +48,26 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
   const [from, setFrom] = useState<Place | null>(PLACES[0])
   const [to, setTo] = useState<Place | null>(PLACES[1])
   const [rev, setRev] = useState(0) // remounts the fields so their text follows a swap or a demo route
-  const [day, setDay] = useState(0)
+  const [day, setDay] = useState(1) // tomorrow
   const [time, setTime] = useState("09:00")
   const [hasCar, setHasCar] = useState(false)
   const [accident, setAccident] = useState(false) // demo only, never on by default
   const same = from !== null && to !== null && metres(from, to) < 300
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000) // so "too soon for today" follows the clock
+    return () => clearInterval(id)
+  }, [])
+  // today: the arrive-by time must still be ahead, with a few minutes to spare for any journey at all
+  const tooSoon = day === 0 && Date.parse(arriveByIso(0, time, now)) < now + 10 * 60_000
 
   return (
     <form
       className="flex flex-col gap-5"
       onSubmit={(e) => {
         e.preventDefault()
-        if (from && to && !same)
-          onSubmit({ origin: from, destination: to, dayOffset: day + 1, time, hasCar, simulateIncident: accident })
+        if (from && to && !same && !tooSoon)
+          onSubmit({ origin: from, destination: to, dayOffset: day, time, hasCar, simulateIncident: accident })
       }}
     >
       {/* The route: two stops joined by a line, like a ticket */}
@@ -172,11 +180,16 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
           From and to are the same place (within 300 m). Pick a different destination.
         </p>
       )}
+      {tooSoon && (
+        <p role="status" className="text-sm text-deadline">
+          Pick a later arrive-by time for today.
+        </p>
+      )}
       <Button
         type="submit"
         size="lg"
         className="group h-12 w-full rounded-full bg-linear-to-r from-rain to-rain/80 text-base text-background shadow-[0_8px_30px_-8px_rgb(110_168_255/0.6)] transition-[box-shadow,filter] hover:shadow-[0_8px_40px_-6px_rgb(110_168_255/0.8)] hover:brightness-110 disabled:shadow-none"
-        disabled={loading || !from || !to || same}
+        disabled={loading || !from || !to || same || tooSoon}
       >
         {loading ? (
           <>

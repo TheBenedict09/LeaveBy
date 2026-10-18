@@ -26,11 +26,29 @@ export function pct(x: number): string {
   return x > 0.99 ? ">99%" : `${Math.round(x * 100)}%`
 }
 
-/** The moment you must arrive, as an ISO string, from "N days from today" plus a "HH:MM" time. */
-export function arriveByIso(dayOffset: number, time: string): string {
+const LONDON = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/London",
+  hourCycle: "h23",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+})
+
+/** London wall-clock time at an instant, written as if it were UTC (so the difference is London's offset). */
+function londonWall(t: number): number {
+  const p = Object.fromEntries(LONDON.formatToParts(t).map((x) => [x.type, Number(x.value)]))
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute)
+}
+
+/** The moment you must arrive, as an ISO string, from "N days from today" (0 = today) plus a "HH:MM" time,
+ * both in UK time, whatever the browser's own time zone. */
+export function arriveByIso(dayOffset: number, time: string, now = Date.now()): string {
   const [h, m] = time.split(":").map(Number)
-  const d = new Date()
-  d.setDate(d.getDate() + dayOffset)
-  d.setHours(h, m, 0, 0)
-  return d.toISOString()
+  const today = new Date(londonWall(now))
+  const wall = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + dayOffset, h, m)
+  const offset = (t: number) => londonWall(t) - t // GMT or BST at t (t on a whole minute)
+  const guess = wall - offset(wall) // a second pass settles the guess across a clock change
+  return new Date(wall - offset(guess)).toISOString()
 }

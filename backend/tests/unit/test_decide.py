@@ -145,3 +145,26 @@ def test_a_deadline_before_the_first_train_makes_rail_infeasible_with_a_plain_re
     night = simulate_all(ROUTES, weather(precip=1.0), NIGHT_DEADLINE, 11, load_model_config(), load_mock_data())
     train = next(o for o in decide(night, problem(deadline_ts=NIGHT_DEADLINE)).options if o.mode == "train")
     assert not train.feasible and train.infeasible_reason == "No train runs early enough"
+
+
+def test_a_trip_later_today_never_leaves_in_the_past():
+    now = DEADLINE - 2 * 3600  # planning two hours ahead: part of every grid is already behind us
+    s = simulate_all(ROUTES, weather(precip=1.0), DEADLINE, 11, load_model_config(), load_mock_data(), not_before=now)
+    for m in MODES:
+        assert s.sims[m].departures.min() >= now
+    full = sim()
+    cut = [m for m in ("walk", "bike", "drive") if full.sims[m].departures[0] < now]
+    assert cut  # the case is meaningful: some grid really did start in the past
+    for m in cut:
+        assert s.sims[m].departures[0] == now  # leaving right now replaces the departures cut
+    for o in decide(s, problem()).options:
+        assert o.summary.leave_by_ts is None or o.summary.leave_by_ts >= now
+
+
+def test_when_every_useful_train_has_left_the_train_says_so():
+    late = DEADLINE - 60  # one minute before the deadline
+    s = simulate_all(ROUTES, weather(precip=1.0), DEADLINE, 11, load_model_config(), load_mock_data(), not_before=late)
+    d = decide(s, problem())
+    train = next(o for o in d.options if o.mode == "train")
+    assert train.infeasible_reason == "Every train that gets you there in time has already left"
+    assert d.winner is None
