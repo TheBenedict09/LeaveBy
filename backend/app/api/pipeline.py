@@ -232,10 +232,13 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
             tt = services.timetable
             msg = f"Real train times cover {tt.valid_from} to {tt.valid_to}. Using simulated trains for this date."
             warnings.append({"code": "TIMETABLE_OUT_OF_RANGE", "message": msg})
-    sim = simulate_all(routes, weather, deadline_ts, seed, services.cfg, services.data, schedule)
+    start = int(now.timestamp())  # a trip later today cannot leave in the past
+    sim = simulate_all(routes, weather, deadline_ts, seed, services.cfg, services.data, schedule, start)
     dry_sim = None
     if not weather_failed:
-        dry_sim = simulate_all(routes, dry_weather(weather), deadline_ts, seed, services.cfg, services.data, schedule)
+        dry_sim = simulate_all(
+            routes, dry_weather(weather), deadline_ts, seed, services.cfg, services.data, schedule, start
+        )
     problem = to_problem(req, deadline_ts)
     licence = services.cfg.emissions.licence
     sources.append(SourceMeta(id="desnz-ghg-2026", kind="static", fetched_at=now, age_s=0, licence=licence))

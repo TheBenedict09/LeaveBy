@@ -74,7 +74,9 @@ class RecommendationRequest(Strict):
         if v.tzinfo is None:
             raise ValueError("must include a UTC offset")
         now = clock.now()
-        if not (now < v <= now + timedelta(days=7)):
+        if v <= now:
+            raise ValueError("must be in the future: pick a later arrive-by time")
+        if v > now + timedelta(days=7):
             raise ValueError("must be within the next 7 days")
         return v
 

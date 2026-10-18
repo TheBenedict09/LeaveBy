@@ -5,6 +5,8 @@ re-runs when the user moves the confidence slider or the priority weights (bluep
 
 from dataclasses import dataclass, field
 
+import numpy as np
+
 from app.adapters.weather import WeatherEnsemble
 from app.core.config import ModelConfig
 from app.core.mockdata import MockData
@@ -56,6 +58,7 @@ class Simulation:
     train_no_service: bool = False  # the real timetable has no direct train on that day
     # Real timetable only: one TrainRun per simulated train, in departure order.
     train_services: tuple[TrainRun, ...] | None = None
+    train_gone: bool = False  # every train worth catching has already left (planning for later today)
 
 
 @dataclass(frozen=True)
@@ -113,23 +116,32 @@ def simulate_all(
     cfg: ModelConfig,
     data: MockData,
     schedule: Schedule | None = None,
+    not_before: int | None = None,
 ) -> Simulation:
     """routes needs walk, bike and drive. Trains run to the real schedule when one is given, else to a generated
-    timetable; either way rail reuses the drive distance for cost and carbon, and delays are simulated."""
+    timetable; either way rail reuses the drive distance for cost and carbon, and delays are simulated.
+    not_before (now, for a trip later today) drops departures that are already in the past."""
     n_members, n_draws = weather.n_members, cfg.noise.n_draws
     z = make_noise(seed, n_members, n_draws)  # shared by every mode
     sims: dict[str, SimResult] = {}
     facts: dict[str, ModeFacts] = {}
     for mode in ("walk", "bike", "drive"):
         r = routes[mode]
-        deps = departure_grid(deadline_ts, r.duration_s, cfg)
+        deps = _from(departure_grid(deadline_ts, r.duration_s, cfg), not_before)
         sims[mode] = simulate(mode, r.duration_s, r.bearing_deg, weather, deps, z, cfg)
         facts[mode] = _facts(mode, r.distance_m, data, cfg)
     rail_m = routes["drive"].distance_m
     noise = make_rail_noise(seed, n_members, n_draws)
     services = None
+    gone = False
+    access_s = cfg.rail.access_min * 60
     if schedule is not None and schedule.deps.size:
         idx, cut_early = scheduled_departures(schedule, deadline_ts, cfg)
+        if not_before is not None:
+            left = idx[schedule.deps[idx] - access_s >= not_before]
+            gone = not left.size
+            # keep one train so the option still has numbers; its reason says every useful train has gone
+            idx = left if left.size else idx[-1:]
         ride_s = (schedule.arrs - schedule.deps)[idx].astype(float)
         sims["train"] = simulate_scheduled(ride_s, weather, schedule.deps[idx], noise, cfg)
         s = schedule
@@ -148,10 +160,21 @@ def simulate_all(
         )
     else:  # no usable schedule: the generated timetable keeps the option's shape (and is overruled if no service)
         deps, cut_early = train_departures(deadline_ts, rail_m, cfg)
+        if not_before is not None:
+            left = deps[deps - access_s >= not_before]
+            gone = not left.size
+            deps = left if left.size else deps[-1:]
         sims["train"] = simulate_train(rail_m, weather, deps, noise, cfg)
     facts["train"] = _facts("train", rail_m, data, cfg)
     no_service = schedule is not None and not schedule.deps.size
-    return Simulation(deadline_ts, seed, n_members, n_draws, sims, facts, cut_early, no_service, services)
+    return Simulation(deadline_ts, seed, n_members, n_draws, sims, facts, cut_early, no_service, services, gone)
+
+
+def _from(deps: np.ndarray, not_before: int | None) -> np.ndarray:
+    """The grid without departures before not_before; leaving right now replaces the ones cut."""
+    if not_before is None or deps[0] >= not_before:
+        return deps
+    return np.concatenate(([not_before], deps[deps > not_before])).astype(np.int64)
 
 
 def _infeasible_reason(mode: str, s: ModeSummary, f: ModeFacts, p: Problem) -> str | None:
@@ -186,6 +209,8 @@ def decide(sim: Simulation, problem: Problem) -> Decision:
     soft = reasons["train"] is None or reasons["train"].startswith("Cannot reach")  # hard constraints win
     if sim.train_no_service and soft:
         reasons["train"] = "No direct train runs that day"
+    elif sim.train_gone and soft:
+        reasons["train"] = "Every train that gets you there in time has already left"
     elif sim.train_cut_early and reasons["train"] and soft:
         # Some train could make it on some mornings, just not reliably enough: say so, rather than "too late".
         if summaries["train"].p_on_time > 0:
