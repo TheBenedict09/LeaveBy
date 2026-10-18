@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -5,6 +6,7 @@ from fastapi.responses import Response
 
 from app.api import envelope, pipeline
 from app.api.schemas import (
+    CalendarRequest,
     Envelope,
     GeocodeData,
     Mode,
@@ -60,12 +62,43 @@ async def rescore_recommendation(
     services: Services = Depends(get_services),  # noqa: B008
 ) -> dict[str, Any]:
     """New confidence, priorities or constraints, answered from the stored simulation. No provider is called."""
-    rec = services.store.get(rec_id)
-    if rec is None:
-        raise HTTPException(status_code=404, detail="Unknown recommendation id")
+    rec = await _recall(rec_id, body.original, services)
     new = pipeline.rescore(rec, body)
     services.store.put(new)
     return _ok(request, pipeline.to_data(new, services.cfg), **pipeline.public_meta(new))
+
+
+async def _recall(rec_id: str, original: RecommendationRequest | None, services: Services) -> pipeline.Record:
+    """The stored result, or the same result rebuilt from the original request when this server has not seen it."""
+    rec = services.store.get(rec_id)
+    if rec is None and original is not None:
+        try:
+            rec = replace(await pipeline.build(original, services), id=rec_id)
+        except FixtureMiss as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        services.store.put(rec)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="Unknown recommendation id")
+    return rec
+
+
+@router.post("/v1/recommendations/{rec_id}/calendar.ics", tags=["recommendations"])
+async def calendar_for(
+    rec_id: str,
+    body: CalendarRequest,
+    services: Services = Depends(get_services),  # noqa: B008
+) -> Response:
+    """The calendar event for the current settings; works on any server when the original request is sent."""
+    rec = await _recall(rec_id, body.original, services)
+    rec = pipeline.rescore(rec, RescoreRequest(confidence=body.confidence, weights=body.weights))
+    return _ics(rec, body.mode, services)
+
+
+def _ics(rec: pipeline.Record, mode: str, services: Services) -> Response:
+    opt = next((o for o in rec.decision.options if o.mode == mode and o.feasible), None)
+    if opt is None or opt.summary.leave_by_ts is None:
+        raise HTTPException(status_code=404, detail=f"No leave-by time for {mode}")
+    return Response(content=pipeline.make_ics(rec, opt, services.cfg.rail.timezone), media_type="text/calendar")
 
 
 @router.get("/v1/recommendations/{rec_id}/calendar.ics", tags=["recommendations"])
@@ -77,10 +110,7 @@ async def calendar(
     rec = services.store.get(rec_id)
     if rec is None:
         raise HTTPException(status_code=404, detail="Unknown recommendation id")
-    opt = next((o for o in rec.decision.options if o.mode == mode and o.feasible), None)
-    if opt is None or opt.summary.leave_by_ts is None:
-        raise HTTPException(status_code=404, detail=f"No leave-by time for {mode}")
-    return Response(content=pipeline.make_ics(rec, opt, services.cfg.rail.timezone), media_type="text/calendar")
+    return _ics(rec, mode, services)
 
 
 @router.get("/v1/geocode", response_model=Envelope[GeocodeData], tags=["places"])

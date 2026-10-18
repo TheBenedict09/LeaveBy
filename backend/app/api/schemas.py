@@ -114,6 +114,16 @@ class RescoreRequest(Strict):
     weights: Weights | None = None
     constraints: Constraints | None = None
     options: Options | None = None
+    # The search that produced the id. On serverless hosting the next request may reach a server that never saw
+    # it; with this, any server rebuilds the same result (the seed comes from the request) instead of a 404.
+    original: RecommendationRequest | None = None
+
+
+class CalendarRequest(Strict):
+    mode: Mode
+    confidence: float | None = Field(None, ge=0.5, le=0.99)
+    weights: Weights | None = None
+    original: RecommendationRequest | None = None  # see RescoreRequest.original
 
 
 class Headline(Strict):

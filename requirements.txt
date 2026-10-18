@@ -1,0 +1,6 @@
+# Python dependencies of the Vercel function (api/index.py); mirrors backend/pyproject.toml
+fastapi>=0.110
+pydantic>=2.6
+httpx>=0.27
+numpy>=1.26
+pyyaml>=6

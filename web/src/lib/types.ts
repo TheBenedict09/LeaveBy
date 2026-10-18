@@ -40,6 +40,7 @@ export interface RescoreRequest {
   confidence?: number
   weights?: Weights
   constraints?: Constraints
+  original?: RecommendationRequest // lets any server rebuild the result (serverless hosting)
 }
 
 export interface Headline {

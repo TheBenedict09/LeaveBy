@@ -23,7 +23,7 @@ import { Priorities } from "@/components/Priorities"
 import { DEFAULT_WEIGHTS, savedVsDriving, shares } from "@/lib/priorities"
 import { ApiFailure, createRecommendation, rescore } from "@/lib/api"
 import { arriveByIso, fmtTime, MODE_LABEL, pct } from "@/lib/format"
-import type { ComposerValue, Meta, Mode, RecommendationData, Weights } from "@/lib/types"
+import type { ComposerValue, Meta, Mode, RecommendationData, RecommendationRequest, Weights } from "@/lib/types"
 
 const RouteMap = lazy(() => import("@/components/RouteMap")) // maplibre is large: load it only with a result
 
@@ -54,6 +54,7 @@ export default function App() {
     arriveBy: string
     runId: string
     confidence: number
+    request: RecommendationRequest // sent again with rescores, so any server can rebuild the result
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -84,7 +85,7 @@ export default function App() {
     setError(null)
     try {
       const arriveBy = arriveByIso(v.dayOffset, v.time)
-      const res = await createRecommendation({
+      const request: RecommendationRequest = {
         origin: v.origin,
         destination: v.destination,
         arrive_by: arriveBy,
@@ -92,9 +93,10 @@ export default function App() {
         weights: shares(weights),
         constraints: { step_free: false, max_walk_m: 1200, max_bike_m: 25000, has_luggage: false, has_car: v.hasCar },
         options: { simulate_incident: v.simulateIncident },
-      })
+      }
+      const res = await createRecommendation(request)
       if (n !== latest.current) return
-      setResult({ ...res, arriveBy, runId: res.data.recommendation_id, confidence: confidence[0] })
+      setResult({ ...res, arriveBy, runId: res.data.recommendation_id, confidence: confidence[0], request })
       // Bring the answer into view and move focus to it, for keyboard and screen reader users too
       requestAnimationFrame(() => {
         const verdict = document.getElementById("verdict")
@@ -121,7 +123,11 @@ export default function App() {
       const n = ++latest.current
       setUpdating(true)
       try {
-        const res = await rescore(result.data.recommendation_id, { confidence: c / 100, weights: shares(w) })
+        const res = await rescore(result.data.recommendation_id, {
+          confidence: c / 100,
+          weights: shares(w),
+          original: result.request,
+        })
         if (n !== latest.current) return
         setError(null)
         setResult((r) => r && { ...r, data: res.data, meta: res.meta, confidence: c })
@@ -293,7 +299,16 @@ export default function App() {
                   {data?.traffic && <TrafficLine traffic={data.traffic} />}
                   <div className="flex flex-wrap items-center gap-3">
                     {headline && result && (
-                      <CalendarButton id={result.data.recommendation_id} mode={headline.mode} onError={setError} />
+                      <CalendarButton
+                        id={result.data.recommendation_id}
+                        body={{
+                          mode: headline.mode,
+                          confidence: result.confidence / 100,
+                          weights: shares(weights),
+                          original: result.request,
+                        }}
+                        onError={setError}
+                      />
                     )}
                     {data && result && <SourcesDrawer meta={result.meta} data={data} confidence={result.confidence} />}
                   </div>
