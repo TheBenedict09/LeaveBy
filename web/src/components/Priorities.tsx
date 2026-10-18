@@ -19,25 +19,27 @@ export function Priorities({ value, onChange }: { value: Weights; onChange: (w: 
   const allZero = ROWS.every(({ key }) => value[key] === 0)
   return (
     <div className="flex flex-col gap-4">
-      {ROWS.map(({ key, label, hint }) => (
-        <div key={key} className="grid grid-cols-[5rem_1fr_3rem] items-center gap-3">
-          <span className="text-sm">
-            {label}
-            {key === "accessibility" && <AccessInfo />}
-            <span className="block text-xs text-muted-foreground">{hint}</span>
-          </span>
-          <Slider
-            value={[value[key]]}
-            onValueChange={([v]) => onChange({ ...value, [key]: v })}
-            min={0}
-            max={100}
-            step={5}
-            aria-label={`${label} priority`}
-            aria-valuetext={`${label}: ${share[key]}% of the decision`}
-          />
-          <span className="text-right font-mono text-sm text-rain">{share[key]}%</span>
-        </div>
-      ))}
+      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        {ROWS.map(({ key, label, hint }) => (
+          <div key={key} className="grid grid-cols-[5rem_1fr_3rem] items-center gap-3">
+            <span className="text-sm">
+              {label}
+              {key === "accessibility" && <AccessInfo />}
+              <span className="block text-xs text-muted-foreground">{hint}</span>
+            </span>
+            <Slider
+              value={[value[key]]}
+              onValueChange={([v]) => onChange({ ...value, [key]: v })}
+              min={0}
+              max={100}
+              step={5}
+              aria-label={`${label} priority`}
+              aria-valuetext={`${label}: ${share[key]}% of the decision`}
+            />
+            <span className="text-right font-mono text-sm text-rain">{share[key]}%</span>
+          </div>
+        ))}
+      </div>
       <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <span>{allZero ? "Move at least one slider above 0." : "Only options you can rely on are ranked."}</span>
         <Button variant="ghost" size="sm" disabled={isDefault} onClick={() => onChange(DEFAULT_WEIGHTS)}>

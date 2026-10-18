@@ -6,7 +6,6 @@ import { fmtTime, MODE_LABEL, pct } from "@/lib/format"
 import type { Option } from "@/lib/types"
 
 const W = 720
-const H = 240
 const PAD = { top: 20, right: 28, bottom: 34, left: 52 }
 
 /** Green means late no more often than the user said they accept (1 - confidence); amber up to twice that. */
@@ -24,6 +23,7 @@ export function TradeOff({ options, confidence }: { options: Option[]; confidenc
   const [active, setActive] = useState<string | null>(null)
   const rows = options.filter((o) => o.feasible && o.leave_by)
   if (!rows.length) return null
+  const H = rows.length <= 2 ? 170 : 240 // few bubbles need little height
 
   const t = rows.map((o) => new Date(o.leave_by!).getTime())
   const lo = Math.min(...t)
