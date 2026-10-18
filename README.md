@@ -7,16 +7,17 @@ LeaveBy answers that one question with one clear decision: a leave-by time, the 
 ## What you see
 
 1. **Plan a trip.** Type any place (or pick a demo route), choose the arrival time and day, and say whether you have a car.
-2. **The verdict.** "Leave at 07:33", the real train to catch ("Catch the 07:45 ScotRail from Glasgow Queen Street, arrives Edinburgh at 08:37"), how many simulated journeys arrived on time, cost, CO2e and access score, the CO2e saved against driving, and the car's traffic basis.
+2. **The verdict.** "Leave at 07:33", the real train to catch ("Catch the 07:45 ScotRail from Glasgow Queen Street, arrives Edinburgh at 08:37"), the chance you arrive on time from the forecast for your route ("97% chance, late about 1 morning in 33"), cost, CO2e and access score, the CO2e saved against driving, and the car's traffic basis.
 3. **Why.** Plain sentences from the scoring: why this option wins and what would change it ("If easy access counted for 50% instead of 20%, driving would win").
 4. **Your priorities.** Time, Cost, Carbon and Access sliders re-rank the options instantly. Only options that meet your confidence are ranked.
 5. **How sure do you want to be?** The confidence slider moves the leave-by time live.
 6. **What if I leave later?** A slider shows each option's chance of arriving on time if you leave at a different time.
 7. **Backup plan.** The alternative least likely to be late on the same mornings as the main plan.
 8. **Trade-offs chart.** Every reliable option by leave-by time and CO2e, sized by cost, coloured by how often it is late.
-9. **The raincloud.** Every simulated journey as a falling dot against the deadline. Hover a dot to see that morning across every option; click to pin it.
-10. **Sources and assumptions.** A panel listing every data source behind the answer with an honest trust badge, and the key assumptions.
-11. **Add to calendar.** Downloads an event for the leave-by time with a 10 minute alarm, the train to catch and the backup.
+9. **Weather on your trip.** The real forecast when you leave and when you must arrive (rain chance as "38 of 51 forecasts", the wet end, gusts, temperature), how many minutes the weather costs each option compared with a dry, calm morning, the gust effect on train delays, and tips that follow from the forecast.
+10. **How the forecast could play out.** Each dot is one of the 51 official forecasts for your start point and morning, against the deadline. Hover a dot to see that forecast's weather and every option's arrival; click to pin it.
+11. **Sources and assumptions.** A panel listing every data source behind the answer with an honest trust badge, and the key assumptions.
+12. **Add to calendar.** Downloads an event for the leave-by time with a 10 minute alarm, the train to catch and the backup.
 
 ## Run it
 
@@ -108,7 +109,7 @@ Credits and licences:
 Use the next weekday ("In 2 days" on a Saturday) so the real weekday timetable applies.
 
 1. **(30 s) The question.** "Google tells you the average. LeaveBy tells you when to leave to be 95% sure." Click the **Glasgow → Edinburgh by car** chip, pick a weekday, press **When should I leave?**
-2. **(30 s) The verdict.** Read "Leave at 07:33", the real 07:45 ScotRail from Queen Street, the on-time count out of 2,040 simulated journeys, and "Saves 10.6 kg CO2e vs driving". Point at the car line: predicted traffic makes the car 83 minutes, so the train wins.
+2. **(30 s) The verdict.** Read "Leave at 07:33", the real 07:45 ScotRail from Queen Street, the chance of arriving on time, the "Weather on your trip" card (how many minutes the weather costs), and "Saves 10.6 kg CO2e vs driving". Point at the car line: predicted traffic makes the car 83 minutes, so the train wins.
 3. **(30 s) Uncertainty you can see.** Scroll to the raincloud: each dot is one possible morning. Hover a dot to show the same morning for train and car; click to pin it.
 4. **(30 s) Your priorities.** Push **Access** up: the car takes over, and the "why" line explains the flip. Press **Reset**. Move the **confidence** slider from 95% to 80% and watch the leave-by time move later.
 5. **(30 s) What if I'm late?** In "What if I leave later?", drag to 07:45: the train drops to 0% because the 07:45 is gone, the car to about 19%.

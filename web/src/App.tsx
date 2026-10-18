@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Slider } from "@/components/ui/slider"
 import { CalendarButton } from "@/components/CalendarButton"
 import { Journey } from "@/components/Journey"
+import { WeatherCard } from "@/components/WeatherCard"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Reveal, RollingTime } from "@/components/Reveal"
 import { Composer } from "@/components/Composer"
 import { RainCloud } from "@/components/RainCloud"
@@ -268,12 +270,25 @@ export default function App() {
                   <Skeleton className="h-4 w-1/2" />
                 </div>
               ) : headline ? (
-                <p>
-                  {MODE_LABEL[headline.mode]}. On time in{" "}
-                  <span className="font-mono text-safe">
-                    {headline.on_time_scenarios.toLocaleString()} of {headline.total_scenarios.toLocaleString()}
-                  </span>{" "}
-                  simulated journeys ({pct(headline.p_on_time)}).
+                <p className="flex flex-wrap items-center gap-x-1.5">
+                  <span>
+                    <span className="font-mono text-safe">{pct(headline.p_on_time)}</span> chance you arrive on time,
+                    based on the forecast for your route
+                    {headline.p_on_time < 1 && `: late about 1 morning in ${Math.round(1 / (1 - headline.p_on_time))}`}.
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-xs text-rain underline-offset-2 hover:underline">
+                        How is this calculated?
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72">
+                      The weather service gives 51 versions of the forecast for your start point and these hours. For
+                      each, LeaveBy adds 40 draws of everyday variation (traffic, train delays), plays your trip out
+                      leaving at {fmtTime(headline.leave_at)}, and counts the arrivals in time:{" "}
+                      {headline.on_time_scenarios.toLocaleString()} of {headline.total_scenarios.toLocaleString()}.
+                    </TooltipContent>
+                  </Tooltip>
                 </p>
               ) : data ? (
                 <p>
@@ -302,6 +317,19 @@ export default function App() {
               )}
             </CardContent>
           </Card>
+
+          {data?.weather && result && (
+            <Reveal key={`weather-${result.runId}`} order={0}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Weather on your trip</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <WeatherCard weather={data.weather} winner={headline?.mode} />
+                </CardContent>
+              </Card>
+            </Reveal>
+          )}
 
           {data?.route && shown && result && (
             <Reveal key={`route-${result?.runId}`} order={1}>
@@ -396,11 +424,17 @@ export default function App() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
-                  Both plans fail together in{" "}
-                  <span className={`font-mono ${data.hedge.both_late_scenarios ? "text-risk" : "text-safe"}`}>
-                    {data.hedge.both_late_scenarios.toLocaleString()} of {data.hedge.total_scenarios.toLocaleString()}
-                  </span>{" "}
-                  simulated journeys.
+                  {data.hedge.both_late_scenarios === 0 ? (
+                    <>In no forecast are both plans late on the same morning.</>
+                  ) : (
+                    <>
+                      Both plans are late on the same morning{" "}
+                      <span className="font-mono text-risk">
+                        {pct(data.hedge.both_late_scenarios / data.hedge.total_scenarios)}
+                      </span>{" "}
+                      of the time.
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </Reveal>
@@ -453,20 +487,25 @@ export default function App() {
           {result ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Every simulated journey</CardTitle>
+                <CardTitle className="text-base">How the forecast could play out</CardTitle>
                 <CardDescription>
-                  Each dot is one possible morning if you leave at the suggested time. Mint arrives in time, coral is
-                  late.
+                  Each dot is one of the 51 official forecasts (ECMWF) for your start point and morning, if you leave at
+                  the suggested time. Green arrives in time, red is late.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RainCloud options={result.data.options} deadline={result.arriveBy} runId={result.runId} />
+                <RainCloud
+                  options={result.data.options}
+                  deadline={result.arriveBy}
+                  runId={result.runId}
+                  weather={result.data.weather?.members_at_departure}
+                />
               </CardContent>
             </Card>
           ) : (
             <Card className="border-dashed">
               <CardContent className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-                Your simulated journeys will appear here
+                How the forecast could play out will appear here
               </CardContent>
             </Card>
           )}

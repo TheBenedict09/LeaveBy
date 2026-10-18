@@ -37,7 +37,17 @@ function hash(i: number, r: number): number {
 // Hard-constraint failures (no car, too far) are left out: their arrivals say nothing about the deadline.
 const plotted = (o: Option) => o.feasible || o.infeasible_reason?.startsWith("Cannot reach")
 
-export function RainCloud({ options, deadline, runId }: { options: Option[]; deadline: string; runId: string }) {
+export function RainCloud({
+  options,
+  deadline,
+  runId,
+  weather,
+}: {
+  options: Option[]
+  deadline: string
+  runId: string
+  weather?: [number, number][] // (rain mm/h, gust mph) per forecast at the departure time
+}) {
   const [asTable, setAsTable] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const still = useReducedMotion() ?? false
@@ -67,7 +77,7 @@ export function RainCloud({ options, deadline, runId }: { options: Option[]; dea
       {asTable ? (
         <JourneyTable rows={rows.filter((o) => o.feasible && o.leave_by)} />
       ) : (
-        <Chart key={runId} rows={rows} deadline={deadline} still={still} />
+        <Chart key={runId} rows={rows} deadline={deadline} still={still} weather={weather} />
       )}
     </div>
   )
@@ -111,7 +121,17 @@ function JourneyTable({ rows }: { rows: Option[] }) {
 
 type Hover = { row: number; t: number; dot: number | null } // t = time under the pointer or the focused dot
 
-function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; still: boolean }) {
+function Chart({
+  rows,
+  deadline,
+  still,
+  weather,
+}: {
+  rows: Option[]
+  deadline: string
+  still: boolean
+  weather?: [number, number][]
+}) {
   const ref = useRef<SVGSVGElement>(null)
   const inView = useInView(ref, { once: true, amount: 0.4 })
   const [fallback, setFallback] = useState(false)
@@ -380,20 +400,23 @@ function Chart({ rows, deadline, still }: { rows: Option[]; deadline: string; st
       {card}
       <p className="mt-1 min-h-10 text-xs text-muted-foreground" aria-live="polite">
         {member === null ? (
-          "Hover a dot to see that morning's weather across every option; click to pin it."
+          "Hover a dot to see that forecast's weather and arrivals for every option; click to pin it."
         ) : (
           <>
             <span className="text-foreground">
-              Morning {member + 1} of {data[0].xs.length}
+              Forecast {member + 1} of {data[0].xs.length}
               {pinned !== null && " (pinned, click it again or press Escape to unpin)"}:
             </span>{" "}
+            {weather?.[member] &&
+              `${weather[member][0] >= 0.1 ? `${weather[member][0].toFixed(1)} mm/h rain` : "dry"}, gusts ${Math.round(weather[member][1])} mph when you leave. `}
             {data
               .map(({ o, xs }) => {
                 const t = xs[member]
                 const late = Math.round((t - dl) / 60_000)
                 return `${MODE_NOUN[o.mode]} arrives ${fmtTime(new Date(t).toISOString())}${late > 0 ? `, ${late} min late` : ""}`
               })
-              .join("; ")}
+              .join("; ")
+              .replace(/^./, (c) => c.toUpperCase())}
             .
           </>
         )}
