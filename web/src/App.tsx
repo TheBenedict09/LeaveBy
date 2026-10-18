@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { Cloud, Leaf } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
@@ -8,7 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Slider } from "@/components/ui/slider"
 import { CalendarButton } from "@/components/CalendarButton"
 import { Journey } from "@/components/Journey"
+import { Bar, Dot, Legend } from "@/components/Legend"
 import { WeatherCard } from "@/components/WeatherCard"
+import { WeatherScene } from "@/components/WeatherScene"
+import { skyFrom } from "@/lib/sky"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Reveal, RollingTime } from "@/components/Reveal"
 import { Composer } from "@/components/Composer"
@@ -157,6 +160,8 @@ export default function App() {
   const saved = winner && data ? savedVsDriving(winner, data.options) : null
   const ranked = data ? data.options.filter((o) => o.rank !== null).length : 0
   const still = useReducedMotion() ?? false
+  const departure = data?.weather?.departure
+  const headerSky = useMemo(() => (departure ? skyFrom(departure) : null), [departure])
   const pickedOption = data?.options.find((o) => o.mode === picked && o.feasible)
   const shown = pickedOption ?? winner
   const backupOption = data?.hedge ? data.options.find((o) => o.mode === data.hedge?.backup_mode) : undefined
@@ -169,7 +174,12 @@ export default function App() {
       >
         Skip to your verdict
       </a>
-      <header className="border-b border-border/60">
+      <header className="relative overflow-hidden border-b border-border/60">
+        {headerSky && (
+          <div className="lb-fade-x pointer-events-none absolute inset-0 opacity-50" aria-hidden>
+            <WeatherScene sky={headerSky} />
+          </div>
+        )}
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <span className="lb-logo relative inline-flex size-7 items-start justify-center" aria-hidden>
@@ -303,7 +313,11 @@ export default function App() {
           </div>
 
           <div className="order-3 lg:order-none">
-            <Card id="verdict" tabIndex={-1} className="scroll-mt-6 outline-none">
+            <Card
+              id="verdict"
+              tabIndex={-1}
+              className="scroll-mt-6 bg-linear-to-br from-card via-card to-rain/[0.06] outline-none"
+            >
               <CardHeader>
                 <CardDescription>Your verdict</CardDescription>
                 <CardTitle
@@ -542,10 +556,15 @@ export default function App() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">How the forecast could play out</CardTitle>
-                  <CardDescription>
-                    Each dot is one of the 51 official forecasts (ECMWF) for your start point and morning, if you leave
-                    at the suggested time. Green arrives in time, red is late.
-                  </CardDescription>
+                  <Legend
+                    items={[
+                      { swatch: <Dot className="bg-safe" />, label: "in time" },
+                      { swatch: <Dot className="bg-risk" />, label: "late" },
+                      { swatch: <Bar className="bg-deadline" />, label: "deadline" },
+                      { swatch: <Bar className="bg-muted-foreground" />, label: "9 in 10 arrive" },
+                    ]}
+                    detail="Each dot is one of the 51 official forecasts (ECMWF) for your start point and morning, if you leave at the suggested time. The blue cloud shows where arrivals bunch up."
+                  />
                 </CardHeader>
                 <CardContent>
                   <RainCloud
