@@ -37,6 +37,36 @@ components:
       - p95
       title: ArrivalQuantiles
       type: object
+    CalendarRequest:
+      additionalProperties: false
+      properties:
+        confidence:
+          anyOf:
+          - maximum: 0.99
+            minimum: 0.5
+            type: number
+          - type: 'null'
+          title: Confidence
+        mode:
+          enum:
+          - walk
+          - bike
+          - drive
+          - train
+          title: Mode
+          type: string
+        original:
+          anyOf:
+          - $ref: '#/components/schemas/RecommendationRequest'
+          - type: 'null'
+        weights:
+          anyOf:
+          - $ref: '#/components/schemas/Weights'
+          - type: 'null'
+      required:
+      - mode
+      title: CalendarRequest
+      type: object
     CliffPoint:
       additionalProperties: false
       properties:
@@ -665,6 +695,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/Options'
           - type: 'null'
+        original:
+          anyOf:
+          - $ref: '#/components/schemas/RecommendationRequest'
+          - type: 'null'
         weights:
           anyOf:
           - $ref: '#/components/schemas/Weights'
@@ -1159,6 +1193,38 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Calendar
+      tags:
+      - recommendations
+    post:
+      description: The calendar event for the current settings; works on any server
+        when the original request is sent.
+      operationId: calendar_for_v1_recommendations__rec_id__calendar_ics_post
+      parameters:
+      - in: path
+        name: rec_id
+        required: true
+        schema:
+          title: Rec Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Calendar For
       tags:
       - recommendations
   /v1/recommendations/{rec_id}/rescore:

@@ -67,6 +67,21 @@ cd web && npm run lint && npm run build
 
 `make rail-data` rebuilds `data/rail_timetable.json` from the national timetable (downloads about 31 MB into the git-ignored `data/cache/`). You only need it to refresh the timetable.
 
+## Deploy (Vercel)
+
+One Vercel project serves both parts: the web app as static files (`web/dist`) and the API as one Python function (`api/index.py`), with `/v1/*` and `/healthz` routed to it by `vercel.json`, so the browser calls the API on the same origin.
+
+```bash
+npx vercel login
+npx vercel          # first time: links the project and makes a preview deployment
+npx vercel --prod   # production
+```
+
+- `TOMTOM_API_KEY` is optional: add it in the Vercel project settings (Environment Variables) for live and predicted car traffic. Without it the app uses free-flow car times and says so. Never put it in the repo.
+- `DEMO_FIXTURES` stays unset in production.
+- Serverless functions do not share memory, so the web app sends the original search with every slider change and calendar download; any server that has not seen the result rebuilds the same one (the seed comes from the request).
+- Redeploy after merging to main with `npx vercel --prod` (or connect the GitHub repo in Vercel to deploy on every push).
+
 ## Data sources
 
 The same badges appear in the app's "Sources and assumptions" panel.

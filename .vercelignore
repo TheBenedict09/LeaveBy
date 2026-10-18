@@ -1,0 +1,11 @@
+# Never upload secrets, caches or local environments
+.env
+.env.*
+!.env.example
+.venv
+**/node_modules
+**/__pycache__
+data/cache
+backend/tests
+fixtures/raw
+web/dist

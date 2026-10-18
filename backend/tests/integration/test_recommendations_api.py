@@ -324,3 +324,29 @@ def test_the_demo_accident_is_labelled_simulated_everywhere(client, valid_reques
     assert "simulated-incident" in mode(data, "drive")["provenance"]
     assert {s["kind"] for s in body["meta"]["sources"] if s["id"] == "simulated-incident"} == {"mock"}
     assert when(mode(data, "drive")["arrival"]["p50"]) > when(mode(plain, "drive")["arrival"]["p50"])
+
+
+@respx.mock
+def test_another_server_rebuilds_an_unknown_id_from_the_original_request(valid_request):
+    """Serverless hosting: the rescore or calendar call may reach a server that never saw the search."""
+    from fastapi.testclient import TestClient
+
+    from app.api.services import Services
+    from app.main import create_app
+
+    stub()
+    req = with_car(valid_request)
+    first = TestClient(create_app(Services.create(routing_interval_s=0.0)))
+    other = TestClient(create_app(Services.create(routing_interval_s=0.0)))  # a fresh server: empty store
+    data = first.post("/v1/recommendations", json=req).json()["data"]
+    rid = data["recommendation_id"]
+
+    assert other.post(f"/v1/recommendations/{rid}/rescore", json={"confidence": 0.9}).status_code == 404
+    again = other.post(f"/v1/recommendations/{rid}/rescore", json={"confidence": 0.95, "original": req}).json()["data"]
+    assert again["recommendation_id"] == rid
+    assert again["headline"]["leave_at"] == data["headline"]["leave_at"]  # same seed, same answer
+
+    late = TestClient(create_app(Services.create(routing_interval_s=0.0)))
+    body = {"mode": data["headline"]["mode"], "confidence": 0.95, "original": req}
+    ics = late.post(f"/v1/recommendations/{rid}/calendar.ics", json=body)
+    assert ics.status_code == 200 and "BEGIN:VEVENT" in ics.text
