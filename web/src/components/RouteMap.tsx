@@ -190,7 +190,7 @@ export default function RouteMap({
   if (failed) return <Schematic route={route} lines={lines} label={label} />
   return (
     <div className="relative">
-      <div ref={box} role="region" aria-label={label} className="h-72 w-full overflow-hidden rounded-lg sm:h-80" />
+      <div ref={box} role="region" aria-label={label} className="h-80 w-full overflow-hidden rounded-lg lg:h-[440px]" />
       {mode === "train" && service && (
         <p className="mt-2 text-xs text-muted-foreground">
           Rail line shown schematically, not the track. Dotted legs to and from the stations are not routed.

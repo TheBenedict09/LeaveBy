@@ -144,6 +144,7 @@ export function SourcesDrawer({
                 </li>
               )}
               {info && <li>CO2e: {info.model.emissions.source}.</li>}
+              <li>Weather icons: Meteocons by Bas Milius (MIT licence), bundled with the app.</li>
               <li>
                 Map: OpenFreeMap tiles, © OpenMapTiles, data © OpenStreetMap contributors (ODbL). Rail lines on the map
                 are drawn straight between stations, not along the track.

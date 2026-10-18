@@ -91,6 +91,7 @@ Credits and licences:
 - **Rail timetable:** Timetable data: Rail Delivery Group (DTD feed), via planarnetwork/gb-transit. The feed lists the Rail Settlement Plan data licence for the RDG data; keep this credit visible. Release `feed-2026-10-17`, valid 17 October 2026 to 17 January 2027. Bank holidays are not modelled.
 - **CO2e:** UK Government greenhouse gas conversion factors for company reporting 2026 (DESNZ), Open Government Licence v3.0. Average car (unknown fuel) 0.16590 kg CO2e per km, national rail 0.03092 kg per passenger km.
 - **Train delay calibration:** in calm weather 86.5% of trains arrive within 5 minutes, the mean Edinburgh to Glasgow PPM for the years to March 2017 to 2020 (Scottish Government FOI 202100260453); the ORR data portal reports 85.0% within 3 minutes nationally for April to June 2026.
+- **Weather icons:** Meteocons by Bas Milius (MIT licence), bundled locally (`@bybas/weather-icons`).
 - **Weather and geocoding:** Open-Meteo.com, non-commercial use. **Routing:** OSRM, map data (c) OpenStreetMap contributors (ODbL). **Traffic:** TomTom.
 
 ## Known limitations
