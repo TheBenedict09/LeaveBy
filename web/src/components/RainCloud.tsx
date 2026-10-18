@@ -49,22 +49,13 @@ export function RainCloud({
   weather?: [number, number][] // (rain mm/h, gust mph) per forecast at the departure time
 }) {
   const [asTable, setAsTable] = useState(false)
-  const box = useRef<HTMLDivElement>(null)
   const still = useReducedMotion() ?? false
   const rows = options.filter(plotted)
-
-  // Bring each new result into view; the rain starts once the chart is on screen.
-  useEffect(() => {
-    box.current?.scrollIntoView({
-      behavior: still ? "auto" : "smooth",
-      block: "center",
-    })
-  }, [runId, still])
 
   if (!rows.length) return null
 
   return (
-    <div ref={box} className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <Button
         variant="outline"
         size="sm"

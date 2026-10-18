@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
+import { AccessInfo } from "@/components/AccessInfo"
 import { Ticker } from "@/components/Reveal"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Meta, Option } from "@/lib/types"
@@ -10,7 +11,7 @@ const SOURCE_LABEL: Record<string, string> = {
   "mock-rail-delays": "train delays (the timetable itself is real)",
   "simulated-incident": "the accident (a demo, not real)",
   "mock-fares": "fares and running costs",
-  "mock-accessibility": "access score",
+  "mock-accessibility": "access score (a placeholder rating)",
 }
 
 /** Cost, carbon and access for the winning option, with an honest tag when any of it is not live data. */
@@ -25,7 +26,13 @@ export function VerdictStats({ option, meta }: { option: Option; meta: Meta }) {
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
       <Stat label="Cost" value={<Ticker value={option.cost_gbp} format={(v) => `£${v.toFixed(2)}`} />} />
       <Stat label="CO2e" value={<Ticker value={option.co2e_kg} format={(v) => `${v.toFixed(1)} kg`} />} />
-      <Stat label="Access score" value={<Ticker value={option.accessibility.score} format={(v) => v.toFixed(2)} />} />
+      <span className="inline-flex items-center gap-1">
+        <Stat
+          label="Access"
+          value={<Ticker value={option.accessibility.score * 100} format={(v) => `${Math.round(v)}/100`} />}
+        />
+        <AccessInfo />
+      </span>
       {estimated.length > 0 && (
         <Tooltip>
           <TooltipTrigger asChild>

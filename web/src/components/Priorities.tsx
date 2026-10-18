@@ -1,4 +1,5 @@
 import { RotateCcw } from "lucide-react"
+import { AccessInfo } from "@/components/AccessInfo"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { DEFAULT_WEIGHTS, percentOf } from "@/lib/priorities"
@@ -22,6 +23,7 @@ export function Priorities({ value, onChange }: { value: Weights; onChange: (w: 
         <div key={key} className="grid grid-cols-[5rem_1fr_3rem] items-center gap-3">
           <span className="text-sm">
             {label}
+            {key === "accessibility" && <AccessInfo />}
             <span className="block text-xs text-muted-foreground">{hint}</span>
           </span>
           <Slider
