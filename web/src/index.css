@@ -287,3 +287,20 @@ body {
     transform: translateY(3px);
   }
 }
+
+/* Cards lift a little on hover: a hairline rain-blue edge and a soft glow. */
+[data-slot="card"] {
+  transition:
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+[data-slot="card"]:hover {
+  box-shadow:
+    0 0 0 1px rgb(110 168 255 / 0.14),
+    0 18px 40px -24px rgb(110 168 255 / 0.35);
+}
+
+/* Fade an element out towards both sides (header weather backdrop). */
+.lb-fade-x {
+  mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+}

@@ -149,7 +149,10 @@ export function SourcesDrawer({
                 are drawn straight between stations, not along the track.
               </li>
               {meta.sources.some((s) => s.id === "mock-fares" || s.id === "mock-accessibility") && (
-                <li>Fares and access scores are placeholders until real data is connected.</li>
+                <li>
+                  Fares are placeholders. The access score (0 to 100) is a fixed placeholder rating per way of
+                  travelling for step-free access and effort, lowered when you carry luggage; it is not measured yet.
+                </li>
               )}
             </ul>
           </section>

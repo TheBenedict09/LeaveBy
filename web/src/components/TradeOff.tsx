@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { motion, useReducedMotion } from "motion/react"
 import { scaleLinear, scaleSqrt, scaleTime } from "d3-scale"
+import { Dot, Legend } from "@/components/Legend"
 import { fmtTime, MODE_LABEL, pct } from "@/lib/format"
 import type { Option } from "@/lib/types"
 
@@ -141,14 +142,24 @@ export function TradeOff({ options, confidence }: { options: Option[]; confidenc
           </p>
           <p className="text-muted-foreground">
             £{shown.cost_gbp.toFixed(2)} · {shown.co2e_kg.toFixed(1)} kg CO2e · access{" "}
-            {shown.accessibility.score.toFixed(2)}
+            {Math.round(shown.accessibility.score * 100)}/100
           </p>
         </div>
       )}
-      <p className="mt-1 text-xs text-muted-foreground">
-        Bubble size is cost. Colour is how often it is late: mint within the {Math.round((1 - confidence) * 100)}% you
-        accept, amber up to twice that, coral more. Options that cannot meet your confidence are left out.
-      </p>
+      <div className="mt-1">
+        <Legend
+          items={[
+            { swatch: <Dot className="bg-safe" />, label: `late ≤ ${Math.round((1 - confidence) * 100)}%` },
+            { swatch: <Dot className="bg-deadline" />, label: `≤ ${Math.round((1 - confidence) * 200)}%` },
+            { swatch: <Dot className="bg-risk" />, label: "more" },
+            {
+              swatch: <span aria-hidden className="size-3 rounded-full border border-muted-foreground" />,
+              label: "size = cost",
+            },
+          ]}
+          detail="Each bubble is an option you can rely on: how late you can leave (right is later) against its CO2e. Colour is how often it is late compared with the confidence you chose. Options that cannot meet your confidence are left out."
+        />
+      </div>
     </div>
   )
 }
