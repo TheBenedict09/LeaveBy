@@ -10,7 +10,8 @@ import type { Meta, RecommendationData, SourceMeta } from "@/lib/types"
 /** How much to trust each source, in plain words. Derived only from the source's id and kind in this response. */
 function badge(s: SourceMeta): { label: string; tone: string } {
   if (s.id === "tomtom-predicted") return { label: "Predicted", tone: "text-rain border-rain/50" }
-  if (s.id === "simulated-incident") return { label: "Simulated", tone: "text-deadline border-deadline/60" }
+  if (s.id === "simulated-incident" || s.id === "simulated-storm")
+    return { label: "Simulated", tone: "text-deadline border-deadline/60" }
   if (s.id === "mock-rail-delays") return { label: "Modelled", tone: "text-deadline border-deadline/50" }
   if (s.kind === "recorded") return { label: "Recorded", tone: "text-deadline border-deadline/50" }
   if (s.kind === "live") return { label: "Live", tone: "text-safe border-safe/50" }

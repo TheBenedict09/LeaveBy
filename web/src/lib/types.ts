@@ -32,7 +32,7 @@ export interface RecommendationRequest {
   confidence: number
   weights?: Weights
   constraints?: Constraints
-  options?: { simulate_incident?: boolean }
+  options?: { simulate_incident?: boolean; simulate_storm?: boolean }
 }
 
 /** Any field left out keeps the value from the original request. */
@@ -167,6 +167,7 @@ export interface ComposerValue {
   time: string
   hasCar: boolean
   simulateIncident: boolean // demo only
+  simulateStorm: boolean // demo only
 }
 
 /** The forecast ensemble at one time near the start of the trip. */
@@ -190,4 +191,5 @@ export interface WeatherInfo {
   train_late_over_5min: [number, number] | null
   members_at_departure: [number, number][] // (rain mm/h, gust mph) per forecast, in raincloud dot order
   tips: string[]
+  simulated: boolean // the demo storm replaced the real forecast
 }

@@ -9,6 +9,7 @@ const SOURCE_LABEL: Record<string, string> = {
   "mock-rail": "train times and delays",
   "mock-rail-delays": "train delays (the timetable itself is real)",
   "simulated-incident": "the accident (a demo, not real)",
+  "simulated-storm": "the weather (a demo storm, not the forecast)",
   "mock-fares": "fares and running costs",
   "mock-accessibility": "access score",
 }

@@ -83,4 +83,4 @@ storm_demo:              # DEMO SCENARIO ONLY ("Simulate a stormy morning"): fix
   rain_add_mm_h: 3.0     # moderate to heavy rain on top of whatever the forecast says
   wind_add_ms: 6.0
   gust_add_ms: 12.0      # gusts well above the 15 m/s threshold that slows cars and raises train delay risk
-  visibility_cap_m: 800  # murky, spray-filled roads
+  visibility_cap_m: 1800 # murky, spray-filled roads (below the 2000 m 'good visibility' level the car model uses)

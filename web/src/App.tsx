@@ -90,7 +90,7 @@ export default function App() {
         confidence: confidence[0] / 100,
         weights: shares(weights),
         constraints: { step_free: false, max_walk_m: 1200, max_bike_m: 25000, has_luggage: false, has_car: v.hasCar },
-        options: { simulate_incident: v.simulateIncident },
+        options: { simulate_incident: v.simulateIncident, simulate_storm: v.simulateStorm },
       })
       if (n !== latest.current) return
       setResult({ ...res, arriveBy, runId: res.data.recommendation_id, confidence: confidence[0] })
@@ -225,7 +225,14 @@ export default function App() {
 
           <Card id="verdict" tabIndex={-1} className="scroll-mt-4 outline-none">
             <CardHeader>
-              <CardDescription>Your verdict</CardDescription>
+              <CardDescription className="flex items-center gap-2">
+                Your verdict
+                {data?.weather?.simulated && (
+                  <Badge variant="outline" className="border-deadline/60 text-deadline">
+                    Simulated storm
+                  </Badge>
+                )}
+              </CardDescription>
               <CardTitle
                 className={`font-mono text-5xl font-semibold tracking-tight transition-opacity ${headline ? "" : "text-muted-foreground"} ${updating ? "opacity-50" : ""}`}
                 aria-busy={updating}

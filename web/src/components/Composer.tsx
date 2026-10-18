@@ -1,5 +1,15 @@
 import { useState } from "react"
-import { ArrowRight, ArrowUpDown, CalendarDays, Car, Clock, Loader2, MapPin, TriangleAlert } from "lucide-react"
+import {
+  ArrowRight,
+  ArrowUpDown,
+  CalendarDays,
+  Car,
+  Clock,
+  CloudLightning,
+  Loader2,
+  MapPin,
+  TriangleAlert,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -51,6 +61,7 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
   const [time, setTime] = useState("09:00")
   const [hasCar, setHasCar] = useState(false)
   const [accident, setAccident] = useState(false) // demo only, never on by default
+  const [storm, setStorm] = useState(false) // demo only, never on by default
   const same = from !== null && to !== null && metres(from, to) < 300
 
   return (
@@ -59,7 +70,15 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
       onSubmit={(e) => {
         e.preventDefault()
         if (from && to && !same)
-          onSubmit({ origin: from, destination: to, dayOffset: day + 1, time, hasCar, simulateIncident: accident })
+          onSubmit({
+            origin: from,
+            destination: to,
+            dayOffset: day + 1,
+            time,
+            hasCar,
+            simulateIncident: accident,
+            simulateStorm: storm,
+          })
       }}
     >
       {/* The route: two stops joined by a line, like a ticket */}
@@ -163,6 +182,17 @@ export function Composer({ onSubmit, loading }: { onSubmit: (v: ComposerValue) =
             checked={accident}
             onCheckedChange={setAccident}
             aria-label="Simulate an accident on the car route (demo)"
+          />
+        </label>
+        <label
+          className={`${pill} flex cursor-pointer items-center gap-2 border-dashed px-3 text-sm ${storm ? "border-deadline/60 text-deadline" : "text-muted-foreground"}`}
+        >
+          <CloudLightning aria-hidden className="size-4" />
+          Simulate a stormy morning <span className="text-xs opacity-70">(demo)</span>
+          <Switch
+            checked={storm}
+            onCheckedChange={setStorm}
+            aria-label="Simulate a stormy morning instead of the real forecast (demo)"
           />
         </label>
       </div>

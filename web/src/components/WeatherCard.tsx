@@ -1,4 +1,5 @@
 import { CloudRain, Sun, Wind } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { fmtTime, MODE_LABEL } from "@/lib/format"
 import type { Mode, WeatherInfo, WeatherPoint } from "@/lib/types"
 
@@ -50,11 +51,25 @@ function Row({ label, p }: { label: string; p: WeatherPoint }) {
 /** The real forecast for the trip, what it costs in minutes, and advice that follows from it. */
 export function WeatherCard({ weather, winner }: { weather: WeatherInfo; winner?: Mode }) {
   const cost = winner ? weather.extra_min[winner] : undefined
+  // the option the weather hurts most, to say so when the recommended one is unaffected
+  const [worstMode, worst] = Object.entries(weather.extra_min).reduce<[string, number]>(
+    (a, [m, v]) => ((v ?? 0) > a[1] ? [m, v ?? 0] : a),
+    ["", 0],
+  )
   const [calm, now] = weather.train_late_over_5min ?? [0, 0]
   const wet = weather.departure.members_with_rain * 2 > weather.departure.members
   const Icon = wet ? CloudRain : weather.departure.gust_mph_median >= 30 ? Wind : Sun
   return (
     <div className="flex flex-col gap-4">
+      {weather.simulated && (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-deadline">
+          <Badge variant="outline" className="border-deadline/60 text-deadline">
+            Simulated
+          </Badge>
+          Demo weather, not the real forecast: every forecast was made stormy by fixed amounts (see Sources and
+          assumptions).
+        </p>
+      )}
       <p className="flex items-start gap-2 text-base">
         <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-rain" />
         <span>
@@ -62,7 +77,9 @@ export function WeatherCard({ weather, winner }: { weather: WeatherInfo; winner?
             ? "Here is the forecast near your start."
             : cost >= 1
               ? `Because of the weather, leave ${Math.round(cost)} min earlier than on a dry, calm morning.`
-              : "The weather barely matters this morning: the same leave time works on a dry, calm day."}
+              : worst >= 1 && winner
+                ? `This weather doesn't change your plan ${MODE_LABEL[winner]}, but ${MODE_LABEL[worstMode as Mode]} you would need to leave ${Math.round(worst)} min earlier.`
+                : "The weather barely matters this morning: the same leave time works on a dry, calm day."}
         </span>
       </p>
       <div className="flex flex-col gap-2">
