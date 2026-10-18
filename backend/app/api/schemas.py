@@ -210,6 +210,31 @@ class TrafficOut(Strict):
     incidents: IncidentsOut | None  # live trips only (or the demo switch)
 
 
+class WeatherPointOut(Strict):
+    """The forecast ensemble at one time near the start of the trip."""
+
+    at: datetime
+    members: int
+    members_with_rain: int  # forecasts with at least 0.5 mm/h
+    rain_mm_h_median: float
+    rain_mm_h_p90: float  # the wet end of the forecast
+    gust_mph_median: float
+    gust_mph_p90: float
+    temp_c_median: float | None
+    visibility_m_median: float | None
+
+
+class WeatherOut(Strict):
+    """The real forecast for the trip, and what it costs in minutes (model coefficients, labelled modelled)."""
+
+    departure: WeatherPointOut
+    arrival: WeatherPointOut
+    extra_min: dict[str, float]  # per option: how much earlier the weather makes you leave than a dry, calm morning
+    train_late_over_5min: tuple[float, float] | None  # (calm, this forecast) chance a train runs over 5 min late
+    members_at_departure: list[tuple[float, float]]  # (rain mm/h, gust mph) per forecast, in raincloud dot order
+    tips: list[str]
+
+
 class RecommendationData(Strict):
     recommendation_id: str
     headline: Headline | None  # None when no option can reach the confidence level
@@ -218,6 +243,7 @@ class RecommendationData(Strict):
     explanation: ExplanationOut
     traffic: TrafficOut | None = None
     route: RouteOut | None = None
+    weather: WeatherOut | None = None
     assumptions_ref: str = "/v1/assumptions"
 
 

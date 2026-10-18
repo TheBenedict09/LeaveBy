@@ -19,8 +19,10 @@ export function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
 }
 
+/** A chance as a percentage that never rounds up to certainty: 0.996 is ">99%", only exactly 1 is "100%". */
 export function pct(x: number): string {
-  return `${Math.round(x * 100)}%`
+  if (x >= 1) return "100%"
+  return x > 0.99 ? ">99%" : `${Math.round(x * 100)}%`
 }
 
 /** The moment you must arrive, as an ISO string, from "N days from today" plus a "HH:MM" time. */

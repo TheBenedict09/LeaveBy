@@ -114,6 +114,7 @@ export interface RecommendationData {
   explanation: Explanation
   traffic?: Traffic | null
   route?: Route | null
+  weather?: WeatherInfo | null
   assumptions_ref: string
 }
 
@@ -166,4 +167,27 @@ export interface ComposerValue {
   time: string
   hasCar: boolean
   simulateIncident: boolean // demo only
+}
+
+/** The forecast ensemble at one time near the start of the trip. */
+export interface WeatherPoint {
+  at: string
+  members: number
+  members_with_rain: number
+  rain_mm_h_median: number
+  rain_mm_h_p90: number
+  gust_mph_median: number
+  gust_mph_p90: number
+  temp_c_median: number | null
+  visibility_m_median: number | null
+}
+
+/** The real forecast for the trip and what it costs in minutes. */
+export interface WeatherInfo {
+  departure: WeatherPoint
+  arrival: WeatherPoint
+  extra_min: Partial<Record<Mode, number>>
+  train_late_over_5min: [number, number] | null
+  members_at_departure: [number, number][] // (rain mm/h, gust mph) per forecast, in raincloud dot order
+  tips: string[]
 }

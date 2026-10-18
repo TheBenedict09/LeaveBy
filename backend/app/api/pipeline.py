@@ -10,6 +10,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from app.adapters.fallback import estimate_route, neutral_weather
+from app.adapters.weather import WeatherEnsemble
 from app.api.schemas import (
     AccessibilityOut,
     ArrivalQuantiles,
@@ -26,15 +27,19 @@ from app.api.schemas import (
     SourceInfo,
     TrafficOut,
     TrainService,
+    WeatherOut,
+    WeatherPointOut,
 )
 from app.api.services import Services
 from app.core import clock
+from app.core.config import ModelConfig
 from app.core.resilience import UpstreamError
 from app.core.seed import seed_from
 from app.core.types import SourceMeta
 from app.decision.engine import Decision, OptionResult, Problem, RouteInfo, Simulation, decide, simulate_all
 from app.decision.explain import explain
 from app.decision.rail_timetable import OutOfRange, lookup
+from app.decision.weather_story import dry_weather, extra_minutes, members_at, point, tips, train_late_risk
 
 TIMETABLE_ATTRIBUTION = "Timetable data: Rail Delivery Group (DTD feed), via planarnetwork/gb-transit"
 DEGRADED_CODES = {"WEATHER_UNAVAILABLE", "WEATHER_STALE", "ROUTE_ESTIMATED"}
@@ -123,6 +128,8 @@ class Record:
     route_ids: dict[str, str]
     traffic: TrafficOut | None = None
     car_line: list[tuple[float, float]] | None = None  # (lat, lon), simplified, for the map
+    weather: WeatherEnsemble | None = None  # the real forecast (None when it failed), for the weather story
+    dry_sim: Simulation | None = None  # the same trip on a dry, calm morning with the same seeds
 
 
 def to_problem(req: RecommendationRequest, deadline_ts: int) -> Problem:
@@ -226,6 +233,9 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
             msg = f"Real train times cover {tt.valid_from} to {tt.valid_to}. Using simulated trains for this date."
             warnings.append({"code": "TIMETABLE_OUT_OF_RANGE", "message": msg})
     sim = simulate_all(routes, weather, deadline_ts, seed, services.cfg, services.data, schedule)
+    dry_sim = None
+    if not weather_failed:
+        dry_sim = simulate_all(routes, dry_weather(weather), deadline_ts, seed, services.cfg, services.data, schedule)
     problem = to_problem(req, deadline_ts)
     licence = services.cfg.emissions.licence
     sources.append(SourceMeta(id="desnz-ghg-2026", kind="static", fetched_at=now, age_s=0, licence=licence))
@@ -261,6 +271,8 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
         route_ids=route_ids,
         traffic=traffic,
         car_line=car_line,
+        weather=None if weather_failed else weather,
+        dry_sim=dry_sim,
     )
 
 
@@ -407,7 +419,26 @@ def _service(o: OptionResult, rec: Record) -> TrainService | None:
     )
 
 
-def to_data(rec: Record) -> RecommendationData:
+def _weather_out(rec: Record, cfg: ModelConfig) -> WeatherOut | None:
+    if rec.weather is None or rec.dry_sim is None:
+        return None
+    d, w = rec.decision, rec.weather
+    deadline = rec.problem.deadline_ts
+    leave = d.winner.summary.leave_by_ts if d.winner and d.winner.summary.leave_by_ts else deadline - 3600
+    dep = point(w, leave)
+    extra = extra_minutes(d, decide(rec.dry_sim, rec.problem))
+    calm, now = train_late_risk(w, leave, cfg)
+    return WeatherOut(
+        departure=WeatherPointOut(**{**dep.__dict__, "at": _dt(dep.at)}),
+        arrival=WeatherPointOut(**{**point(w, deadline).__dict__, "at": _dt(deadline)}),
+        extra_min=extra,
+        train_late_over_5min=(calm, now) if "train" in {o.mode for o in d.options if o.feasible} else None,
+        members_at_departure=members_at(w, leave),
+        tips=tips(w, dep, leave, deadline, extra, d, cfg),
+    )
+
+
+def to_data(rec: Record, cfg: ModelConfig) -> RecommendationData:
     d = rec.decision
     ex = explain(d)
     win = d.winner
@@ -439,6 +470,7 @@ def to_data(rec: Record) -> RecommendationData:
         hedge=hedge,
         explanation=ExplanationOut(because=ex.because, tradeoffs=ex.tradeoffs, flip_points=ex.flip_points),
         traffic=rec.traffic,
+        weather=_weather_out(rec, cfg),
         route=RouteOut(
             origin=(rec.request.origin.lat, rec.request.origin.lon),
             destination=(rec.request.destination.lat, rec.request.destination.lon),
@@ -449,6 +481,14 @@ def to_data(rec: Record) -> RecommendationData:
 
 def _esc(text: str) -> str:
     return text.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;")
+
+
+def _chance(on_time: int, total: int) -> str:
+    """'97%', '>99%' or '100%': never round a chance up to certainty."""
+    if on_time == total:
+        return "100%"
+    p = 100 * on_time / total
+    return ">99%" if p > 99 else f"{round(p)}%"
 
 
 def make_ics(rec: Record, opt: OptionResult, timezone: str) -> str:
@@ -467,8 +507,8 @@ def make_ics(rec: Record, opt: OptionResult, timezone: str) -> str:
     if svc is not None:
         dep, arr = int(svc.depart_at.timestamp()), int(svc.arrive_at.timestamp())
         plan.append(f"Catch the {hm(dep)} {svc.operator} from {svc.from_station}, arrives {svc.to_station} {hm(arr)}.")
-    pct = round(100 * s.on_time_scenarios / s.total_scenarios)
-    plan.append(f"On time in {s.on_time_scenarios} of {s.total_scenarios} simulated journeys ({pct}%).")
+    chance = _chance(s.on_time_scenarios, s.total_scenarios)
+    plan.append(f"{chance} chance you arrive on time, from the forecast for your route.")
     h = rec.decision.hedge
     if h is not None and opt is rec.decision.winner:
         plan.append(f"Backup: leave at {hm(h.leave_by_ts)} {by[h.backup_mode]}.")

@@ -589,6 +589,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/TrafficOut'
           - type: 'null'
+        weather:
+          anyOf:
+          - $ref: '#/components/schemas/WeatherOut'
+          - type: 'null'
       required:
       - recommendation_id
       - headline
@@ -913,6 +917,102 @@ components:
       - code
       - message
       title: Warning
+      type: object
+    WeatherOut:
+      additionalProperties: false
+      description: The real forecast for the trip, and what it costs in minutes (model
+        coefficients, labelled modelled).
+      properties:
+        arrival:
+          $ref: '#/components/schemas/WeatherPointOut'
+        departure:
+          $ref: '#/components/schemas/WeatherPointOut'
+        extra_min:
+          additionalProperties:
+            type: number
+          title: Extra Min
+          type: object
+        members_at_departure:
+          items:
+            maxItems: 2
+            minItems: 2
+            prefixItems:
+            - type: number
+            - type: number
+            type: array
+          title: Members At Departure
+          type: array
+        tips:
+          items:
+            type: string
+          title: Tips
+          type: array
+        train_late_over_5min:
+          anyOf:
+          - maxItems: 2
+            minItems: 2
+            prefixItems:
+            - type: number
+            - type: number
+            type: array
+          - type: 'null'
+          title: Train Late Over 5Min
+      required:
+      - departure
+      - arrival
+      - extra_min
+      - train_late_over_5min
+      - members_at_departure
+      - tips
+      title: WeatherOut
+      type: object
+    WeatherPointOut:
+      additionalProperties: false
+      description: The forecast ensemble at one time near the start of the trip.
+      properties:
+        at:
+          format: date-time
+          title: At
+          type: string
+        gust_mph_median:
+          title: Gust Mph Median
+          type: number
+        gust_mph_p90:
+          title: Gust Mph P90
+          type: number
+        members:
+          title: Members
+          type: integer
+        members_with_rain:
+          title: Members With Rain
+          type: integer
+        rain_mm_h_median:
+          title: Rain Mm H Median
+          type: number
+        rain_mm_h_p90:
+          title: Rain Mm H P90
+          type: number
+        temp_c_median:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Temp C Median
+        visibility_m_median:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Visibility M Median
+      required:
+      - at
+      - members
+      - members_with_rain
+      - rain_mm_h_median
+      - rain_mm_h_p90
+      - gust_mph_median
+      - gust_mph_p90
+      - temp_c_median
+      - visibility_m_median
+      title: WeatherPointOut
       type: object
     Weights:
       additionalProperties: false
