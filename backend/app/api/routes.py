@@ -47,7 +47,7 @@ async def create_recommendation(
     except FixtureMiss as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
     services.store.put(rec)
-    return _ok(request, pipeline.to_data(rec), **pipeline.public_meta(rec))
+    return _ok(request, pipeline.to_data(rec, services.cfg), **pipeline.public_meta(rec))
 
 
 @router.post(
@@ -65,7 +65,7 @@ async def rescore_recommendation(
         raise HTTPException(status_code=404, detail="Unknown recommendation id")
     new = pipeline.rescore(rec, body)
     services.store.put(new)
-    return _ok(request, pipeline.to_data(new), **pipeline.public_meta(new))
+    return _ok(request, pipeline.to_data(new, services.cfg), **pipeline.public_meta(new))
 
 
 @router.get("/v1/recommendations/{rec_id}/calendar.ics", tags=["recommendations"])
