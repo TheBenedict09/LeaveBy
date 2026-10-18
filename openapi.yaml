@@ -526,6 +526,10 @@ components:
           default: false
           title: Simulate Incident
           type: boolean
+        simulate_storm:
+          default: false
+          title: Simulate Storm
+          type: boolean
         stress_test:
           default: false
           title: Stress Test
@@ -630,6 +634,7 @@ components:
             explain: template
             hedge: true
             simulate_incident: false
+            simulate_storm: false
             stress_test: false
         origin:
           $ref: '#/components/schemas/Place'
@@ -942,6 +947,10 @@ components:
             type: array
           title: Members At Departure
           type: array
+        simulated:
+          default: false
+          title: Simulated
+          type: boolean
         tips:
           items:
             type: string

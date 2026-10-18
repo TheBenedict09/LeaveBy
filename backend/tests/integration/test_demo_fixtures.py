@@ -58,3 +58,8 @@ def test_the_recordings_never_contain_an_api_key():
     for f in DEMO.glob("*.json"):
         text = f.read_text()
         assert "key=" not in text and '"key": "' not in text.replace('"key": "GET ', "")
+
+
+def test_the_demo_storm_works_offline(demo):
+    r = demo.post("/v1/recommendations", json={**body(EDB), "options": {"simulate_storm": True}})
+    assert r.status_code == 200 and r.json()["data"]["weather"]["simulated"] is True

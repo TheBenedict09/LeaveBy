@@ -3,7 +3,7 @@ import numpy as np
 from app.core.config import load_model_config
 from app.core.mockdata import load_mock_data
 from app.decision.engine import decide, simulate_all
-from app.decision.weather_story import dry_weather, extra_minutes, members_at, point, tips, train_late_risk
+from app.decision.weather_story import dry_weather, extra_minutes, members_at, point, stormy, tips, train_late_risk
 from tests.helpers import DEADLINE, weather
 from tests.unit.test_decide import ROUTES, problem
 
@@ -54,3 +54,12 @@ def test_tips_only_say_what_the_data_supports():
     d, dry = run(calm)
     assert tips(calm, point(calm, DEADLINE - 3600), DEADLINE - 3600, DEADLINE, extra_minutes(d, dry), d, CFG) == []
     assert np.isfinite(point(calm, DEADLINE).rain_mm_h_p90)
+
+
+def test_the_demo_storm_adds_the_configured_amounts_and_is_deterministic():
+    w = weather(precip=0.5, gust=4.0, vis=24000.0)
+    s = stormy(w, CFG)
+    assert np.allclose(s.precip_mm_h, 0.5 + CFG.storm_demo.rain_add_mm_h)
+    assert np.allclose(s.gust_ms, 4.0 + CFG.storm_demo.gust_add_ms)
+    assert (s.visibility_m <= CFG.storm_demo.visibility_cap_m).all()
+    assert np.array_equal(stormy(w, CFG).precip_mm_h, s.precip_mm_h)

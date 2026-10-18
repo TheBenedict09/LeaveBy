@@ -77,3 +77,10 @@ traffic:                 # TomTom (only when TOMTOM_API_KEY is set; otherwise fr
   live_window_h: 2       # trips leaving within this window use live traffic and incidents; later ones use
                          # TomTom's predicted traffic for that departure time
   simulated_incident_delay_min: 15  # DEMO ONLY: the 'Simulate an accident' switch adds this to the car
+
+storm_demo:              # DEMO SCENARIO ONLY ("Simulate a stormy morning"): fixed changes applied to every
+                         # forecast member before the engine runs. Never the real forecast; always labelled Simulated.
+  rain_add_mm_h: 3.0     # moderate to heavy rain on top of whatever the forecast says
+  wind_add_ms: 6.0
+  gust_add_ms: 12.0      # gusts well above the 15 m/s threshold that slows cars and raises train delay risk
+  visibility_cap_m: 800  # murky, spray-filled roads

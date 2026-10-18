@@ -86,6 +86,13 @@ class TrafficCfg(_Cfg):
     simulated_incident_delay_min: float
 
 
+class StormDemoCfg(_Cfg):
+    rain_add_mm_h: float
+    wind_add_ms: float
+    gust_add_ms: float
+    visibility_cap_m: float
+
+
 class ModelConfig(_Cfg):
     status: str
     grid: GridCfg
@@ -97,6 +104,7 @@ class ModelConfig(_Cfg):
     rail: RailCfg
     emissions: EmissionsCfg
     traffic: TrafficCfg
+    storm_demo: StormDemoCfg
 
 
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "model.yaml"

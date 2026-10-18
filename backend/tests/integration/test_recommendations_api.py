@@ -324,3 +324,24 @@ def test_the_demo_accident_is_labelled_simulated_everywhere(client, valid_reques
     assert "simulated-incident" in mode(data, "drive")["provenance"]
     assert {s["kind"] for s in body["meta"]["sources"] if s["id"] == "simulated-incident"} == {"mock"}
     assert when(mode(data, "drive")["arrival"]["p50"]) > when(mode(plain, "drive")["arrival"]["p50"])
+
+
+@respx.mock
+def test_the_demo_storm_is_labelled_simulated_and_shows_its_weather_cost(client, valid_request):
+    stub()
+    calm = client.post("/v1/recommendations", json=with_car(valid_request)).json()["data"]
+    req = {**with_car(valid_request), "options": {"simulate_storm": True}}
+    body = client.post("/v1/recommendations", json=req).json()
+    w = body["data"]["weather"]
+    assert w["simulated"] is True and calm["weather"]["simulated"] is False
+    assert w["departure"]["members_with_rain"] == w["departure"]["members"]  # every forecast member is wet
+    assert w["extra_min"]["drive"] > calm["weather"]["extra_min"].get("drive", 0)
+    assert w["train_late_over_5min"][1] > w["train_late_over_5min"][0] and w["tips"]
+    assert {s["kind"] for s in body["meta"]["sources"] if s["id"] == "simulated-storm"} == {"mock"}
+    assert all("simulated-storm" in o["provenance"] for o in body["data"]["options"])
+    rid = body["data"]["recommendation_id"]
+    again = client.post(f"/v1/recommendations/{rid}/rescore", json={"confidence": 0.9}).json()["data"]
+    assert again["weather"]["simulated"] is True  # rescoring keeps the demo storm
+    best = again["headline"]["mode"]
+    ics = client.get(f"/v1/recommendations/{rid}/calendar.ics", params={"mode": best}).text
+    assert "Demo weather\\, not the real forecast" in ics

@@ -57,6 +57,7 @@ class Options(Strict):
     hedge: bool = True
     explain: Literal["template", "llm"] = "template"
     simulate_incident: bool = False  # DEMO ONLY: add a made-up accident delay to the car; always labelled simulated
+    simulate_storm: bool = False  # DEMO ONLY: make every forecast member stormy; always labelled simulated
 
 
 class RecommendationRequest(Strict):
@@ -233,6 +234,7 @@ class WeatherOut(Strict):
     train_late_over_5min: tuple[float, float] | None  # (calm, this forecast) chance a train runs over 5 min late
     members_at_departure: list[tuple[float, float]]  # (rain mm/h, gust mph) per forecast, in raincloud dot order
     tips: list[str]
+    simulated: bool = False  # True when the demo storm replaced the real forecast
 
 
 class RecommendationData(Strict):

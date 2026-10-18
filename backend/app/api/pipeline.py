@@ -39,7 +39,7 @@ from app.core.types import SourceMeta
 from app.decision.engine import Decision, OptionResult, Problem, RouteInfo, Simulation, decide, simulate_all
 from app.decision.explain import explain
 from app.decision.rail_timetable import OutOfRange, lookup
-from app.decision.weather_story import dry_weather, extra_minutes, members_at, point, tips, train_late_risk
+from app.decision.weather_story import dry_weather, extra_minutes, members_at, point, stormy, tips, train_late_risk
 
 TIMETABLE_ATTRIBUTION = "Timetable data: Rail Delivery Group (DTD feed), via planarnetwork/gb-transit"
 DEGRADED_CODES = {"WEATHER_UNAVAILABLE", "WEATHER_STALE", "ROUTE_ESTIMATED"}
@@ -106,6 +106,7 @@ REGISTRY = [
             ("mock-rail", "Trains where the real timetable does not reach", MOCK_SOURCES["mock-rail"]),
             ("mock-rail-delays", "Train delays", MOCK_SOURCES["mock-rail-delays"]),
             ("simulated-incident", "Demo accident on the car route (only when switched on)", "Demo only"),
+            ("simulated-storm", "Demo stormy weather replacing the forecast (only when switched on)", "Demo only"),
             ("mock-fares", "Fares and running costs", MOCK_SOURCES["mock-fares"]),
             ("mock-accessibility", "Step-free access and effort", MOCK_SOURCES["mock-accessibility"]),
         ]
@@ -232,9 +233,13 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
             tt = services.timetable
             msg = f"Real train times cover {tt.valid_from} to {tt.valid_to}. Using simulated trains for this date."
             warnings.append({"code": "TIMETABLE_OUT_OF_RANGE", "message": msg})
+    if req.options.simulate_storm:
+        weather = stormy(weather, services.cfg)
+        sources.append(SourceMeta(id="simulated-storm", kind="mock", fetched_at=now, age_s=0, licence="Demo only"))
     sim = simulate_all(routes, weather, deadline_ts, seed, services.cfg, services.data, schedule)
     dry_sim = None
-    if not weather_failed:
+    has_story = not weather_failed or req.options.simulate_storm  # the demo storm needs no real forecast
+    if has_story:
         dry_sim = simulate_all(routes, dry_weather(weather), deadline_ts, seed, services.cfg, services.data, schedule)
     problem = to_problem(req, deadline_ts)
     licence = services.cfg.emissions.licence
@@ -271,7 +276,7 @@ async def build(req: RecommendationRequest, services: Services) -> Record:
         route_ids=route_ids,
         traffic=traffic,
         car_line=car_line,
-        weather=None if weather_failed else weather,
+        weather=weather if has_story else None,
         dry_sim=dry_sim,
     )
 
@@ -370,6 +375,8 @@ def _provenance(mode: str, rec: Record) -> list[str]:
     if mode == "train":
         real = rec.sim.train_services is not None or rec.sim.train_no_service
         ids += ["rdg-timetable", "mock-rail-delays"] if real else ["mock-rail"]
+    if rec.request.options.simulate_storm:
+        ids.append("simulated-storm")
     if mode == "drive" and rec.traffic and rec.traffic.incidents and rec.traffic.incidents.simulated:
         ids.append("simulated-incident")
     if mode in ("train", "drive"):
@@ -435,6 +442,7 @@ def _weather_out(rec: Record, cfg: ModelConfig) -> WeatherOut | None:
         train_late_over_5min=(calm, now) if "train" in {o.mode for o in d.options if o.feasible} else None,
         members_at_departure=members_at(w, leave),
         tips=tips(w, dep, leave, deadline, extra, d, cfg),
+        simulated=rec.request.options.simulate_storm,
     )
 
 
@@ -512,6 +520,8 @@ def make_ics(rec: Record, opt: OptionResult, timezone: str) -> str:
     h = rec.decision.hedge
     if h is not None and opt is rec.decision.winner:
         plan.append(f"Backup: leave at {hm(h.leave_by_ts)} {by[h.backup_mode]}.")
+    if rec.request.options.simulate_storm:
+        plan.append("Demo weather, not the real forecast: planned with the simulated storm switched on.")
     plan.append("Delays, fares and access are modelled; see the app's sources for what is real.")
     description = "\\n".join(_esc(p) for p in plan)  # an escaped newline inside an iCalendar text value
     lines = [

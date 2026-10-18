@@ -47,6 +47,18 @@ def dry_weather(w: WeatherEnsemble) -> WeatherEnsemble:
     )
 
 
+def stormy(w: WeatherEnsemble, cfg: ModelConfig) -> WeatherEnsemble:
+    """DEMO ONLY: the same ensemble made stormy by fixed amounts (config storm_demo). Never the real forecast."""
+    s = cfg.storm_demo
+    return replace(
+        w,
+        precip_mm_h=np.nan_to_num(w.precip_mm_h) + s.rain_add_mm_h,
+        wind_ms=np.nan_to_num(w.wind_ms) + s.wind_add_ms,
+        gust_ms=np.nan_to_num(w.gust_ms) + s.gust_add_ms,
+        visibility_m=np.fmin(np.nan_to_num(w.visibility_m, nan=np.inf), s.visibility_cap_m),
+    )
+
+
 def point(w: WeatherEnsemble, ts: int) -> WeatherPoint:
     c = conditions_at(w, nearest_hour_index(w.times, np.array([ts])))
     rain, gust = c.precip[:, 0], c.gust[:, 0] * MS_TO_MPH
