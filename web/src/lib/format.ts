@@ -22,6 +22,7 @@ export function fmtTime(iso: string): string {
 /** A chance as a percentage that never rounds up to certainty: 0.996 is ">99%", only exactly 1 is "100%". */
 export function pct(x: number): string {
   if (x >= 1) return "100%"
+  if (x > 0 && x < 0.005) return "<1%" // never show a real chance as 0%
   return x > 0.99 ? ">99%" : `${Math.round(x * 100)}%`
 }
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { Cloud, Leaf } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
@@ -10,8 +10,6 @@ import { CalendarButton } from "@/components/CalendarButton"
 import { Journey } from "@/components/Journey"
 import { Bar, Dot, Legend } from "@/components/Legend"
 import { WeatherCard } from "@/components/WeatherCard"
-import { WeatherScene } from "@/components/WeatherScene"
-import { skyFrom } from "@/lib/sky"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Reveal, RollingTime } from "@/components/Reveal"
 import { Composer } from "@/components/Composer"
@@ -160,8 +158,6 @@ export default function App() {
   const saved = winner && data ? savedVsDriving(winner, data.options) : null
   const ranked = data ? data.options.filter((o) => o.rank !== null).length : 0
   const still = useReducedMotion() ?? false
-  const departure = data?.weather?.departure
-  const headerSky = useMemo(() => (departure ? skyFrom(departure) : null), [departure])
   const pickedOption = data?.options.find((o) => o.mode === picked && o.feasible)
   const shown = pickedOption ?? winner
   const backupOption = data?.hedge ? data.options.find((o) => o.mode === data.hedge?.backup_mode) : undefined
@@ -174,12 +170,7 @@ export default function App() {
       >
         Skip to your verdict
       </a>
-      <header className="relative overflow-hidden border-b border-border/60">
-        {headerSky && (
-          <div className="lb-fade-x pointer-events-none absolute inset-0 opacity-50" aria-hidden>
-            <WeatherScene sky={headerSky} />
-          </div>
-        )}
+      <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <span className="lb-logo relative inline-flex size-7 items-start justify-center" aria-hidden>
@@ -209,84 +200,17 @@ export default function App() {
         </div>
       </header>
 
-      <main
-        id="main"
-        className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[minmax(0,27rem)_minmax(0,1fr)] lg:items-start lg:gap-8"
-      >
-        {/* Two columns from 1024 px; on phones the "contents" wrappers dissolve and the order classes interleave them */}
-        <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
-          <div className="order-1 lg:order-none">
+      <main id="main" className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
+        {/* 1. Ask and answer: the trip, and the verdict beside it */}
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-5">
             <Card className="hero-card overflow-visible bg-card/70 backdrop-blur">
               <CardContent>
                 <Composer onSubmit={run} loading={loading} />
               </CardContent>
             </Card>
           </div>
-
-          <div className="order-4 lg:order-none">
-            {data?.weather && result && (
-              <Reveal key={`weather-${result.runId}`} order={0}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Weather on your trip</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <WeatherCard weather={data.weather} winner={headline?.mode} />
-                  </CardContent>
-                </Card>
-              </Reveal>
-            )}
-          </div>
-
-          <div className="order-5 lg:order-none">
-            {data?.route && shown && result && (
-              <Reveal key={`route-${result?.runId}`} order={1}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Your route{" "}
-                      {shown !== winner && <span className="text-muted-foreground">({MODE_LABEL[shown.mode]})</span>}
-                    </CardTitle>
-                    <CardDescription>
-                      {shown === winner
-                        ? "The recommended option, door to door. Pick another option below to compare."
-                        : "Showing the option you picked. "}
-                      {shown !== winner && (
-                        <button
-                          type="button"
-                          className="text-rain underline-offset-2 hover:underline"
-                          onClick={() => setPicked(null)}
-                        >
-                          Back to the recommendation
-                        </button>
-                      )}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-6 lg:grid-cols-[1fr_15rem]">
-                    <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-secondary/40 sm:h-80" />}>
-                      <RouteMap
-                        key={result.runId}
-                        route={data.route}
-                        mode={shown.mode}
-                        service={shown.service}
-                        still={still}
-                      />
-                    </Suspense>
-                    <Journey
-                      option={shown}
-                      backup={shown === winner ? data.hedge : null}
-                      backupOption={backupOption}
-                      deadline={result.arriveBy}
-                      traffic={data.traffic}
-                    />
-                  </CardContent>
-                </Card>
-              </Reveal>
-            )}
-          </div>
-        </div>
-        <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
-          <div className="order-2 lg:order-none">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
             {error && (
               <div
                 role="alert"
@@ -300,9 +224,6 @@ export default function App() {
                 )}
               </div>
             )}
-          </div>
-
-          <div className="order-2 lg:order-none">
             {result?.meta.degraded && (
               <div className="rounded-lg border border-deadline/40 bg-deadline/10 px-4 py-3 text-sm text-deadline">
                 {result.meta.warnings.map((w) => (
@@ -310,9 +231,6 @@ export default function App() {
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="order-3 lg:order-none">
             <Card
               id="verdict"
               tabIndex={-1}
@@ -414,8 +332,73 @@ export default function App() {
               </CardContent>
             </Card>
           </div>
-
-          <div className="order-6 lg:order-none">
+        </div>
+        {/* 2. The route, wide and tall enough for the map, with the door-to-door timeline */}
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-12">
+            {data?.route && shown && result && (
+              <Reveal key={`route-${result?.runId}`} order={1}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      Your route{" "}
+                      {shown !== winner && <span className="text-muted-foreground">({MODE_LABEL[shown.mode]})</span>}
+                    </CardTitle>
+                    <CardDescription>
+                      {shown === winner
+                        ? "The recommended option, door to door. Pick another option below to compare."
+                        : "Showing the option you picked. "}
+                      {shown !== winner && (
+                        <button
+                          type="button"
+                          className="text-rain underline-offset-2 hover:underline"
+                          onClick={() => setPicked(null)}
+                        >
+                          Back to the recommendation
+                        </button>
+                      )}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                    <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-secondary/40 lg:h-[440px]" />}>
+                      <RouteMap
+                        key={result.runId}
+                        route={data.route}
+                        mode={shown.mode}
+                        service={shown.service}
+                        still={still}
+                      />
+                    </Suspense>
+                    <Journey
+                      option={shown}
+                      backup={shown === winner ? data.hedge : null}
+                      backupOption={backupOption}
+                      deadline={result.arriveBy}
+                      traffic={data.traffic}
+                    />
+                  </CardContent>
+                </Card>
+              </Reveal>
+            )}
+          </div>
+        </div>
+        {/* 3. Context and controls */}
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
+            {data?.weather && result && (
+              <Reveal key={`weather-${result.runId}`} order={0}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Weather on your trip</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <WeatherCard weather={data.weather} winner={headline?.mode} />
+                  </CardContent>
+                </Card>
+              </Reveal>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-5">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">How sure do you want to be?</CardTitle>
@@ -433,9 +416,6 @@ export default function App() {
                 />
               </CardContent>
             </Card>
-          </div>
-
-          <div className="order-7 lg:order-none">
             {data && (
               <Reveal key={`priorities-${result?.runId}`} order={2}>
                 <Card>
@@ -452,60 +432,10 @@ export default function App() {
               </Reveal>
             )}
           </div>
-
-          <div className="order-8 lg:order-none">
-            {data && headline && result && (
-              <Reveal key={`leave-later-${result?.runId}`} order={3}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">What if I leave later?</CardTitle>
-                    <CardDescription>
-                      Slide to see how your chances change. Uses the same simulated mornings.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <LeaveLater
-                      key={`${result.runId}-${headline.leave_at}`}
-                      options={data.options}
-                      leaveAt={headline.leave_at}
-                      confidence={result.confidence / 100}
-                    />
-                  </CardContent>
-                </Card>
-              </Reveal>
-            )}
-          </div>
-
-          <div className="order-9 lg:order-none">
-            {data?.hedge && (
-              <Reveal key={`backup-${result?.runId}`} order={4}>
-                <Card>
-                  <CardHeader>
-                    <CardDescription>Backup plan</CardDescription>
-                    <CardTitle className="text-xl">
-                      Or leave at <span className="font-mono">{fmtTime(data.hedge.leave_at)}</span>{" "}
-                      {MODE_LABEL[data.hedge.backup_mode]}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground">
-                    {data.hedge.both_late_scenarios === 0 ? (
-                      <>In no forecast are both plans late on the same morning.</>
-                    ) : (
-                      <>
-                        Both plans are late on the same morning{" "}
-                        <span className="font-mono text-risk">
-                          {pct(data.hedge.both_late_scenarios / data.hedge.total_scenarios)}
-                        </span>{" "}
-                        of the time.
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </Reveal>
-            )}
-          </div>
-
-          <div className="order-10 lg:order-none">
+        </div>
+        {/* 4. Compare the options */}
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
             {data && (
               <Reveal key={`options-${result?.runId}`} order={5}>
                 <Card>
@@ -550,8 +480,58 @@ export default function App() {
               </Reveal>
             )}
           </div>
-
-          <div className="order-11 lg:order-none">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-5">
+            {data && headline && result && (
+              <Reveal key={`leave-later-${result?.runId}`} order={3}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">What if I leave later?</CardTitle>
+                    <CardDescription>
+                      Slide to see how your chances change. Uses the same simulated mornings.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <LeaveLater
+                      key={`${result.runId}-${headline.leave_at}`}
+                      options={data.options}
+                      leaveAt={headline.leave_at}
+                      confidence={result.confidence / 100}
+                    />
+                  </CardContent>
+                </Card>
+              </Reveal>
+            )}
+            {data?.hedge && (
+              <Reveal key={`backup-${result?.runId}`} order={4}>
+                <Card>
+                  <CardHeader>
+                    <CardDescription>Backup plan</CardDescription>
+                    <CardTitle className="text-xl">
+                      Or leave at <span className="font-mono">{fmtTime(data.hedge.leave_at)}</span>{" "}
+                      {MODE_LABEL[data.hedge.backup_mode]}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    {data.hedge.both_late_scenarios === 0 ? (
+                      <>In no forecast are both plans late on the same morning.</>
+                    ) : (
+                      <>
+                        Both plans are late on the same morning{" "}
+                        <span className="font-mono text-risk">
+                          {pct(data.hedge.both_late_scenarios / data.hedge.total_scenarios)}
+                        </span>{" "}
+                        of the time.
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </Reveal>
+            )}
+          </div>
+        </div>
+        {/* 5. The evidence */}
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-12">
             {result ? (
               <Card>
                 <CardHeader>
@@ -566,7 +546,7 @@ export default function App() {
                     detail="Each dot is one of the 51 official forecasts (ECMWF) for your start point and morning, if you leave at the suggested time. The blue cloud shows where arrivals bunch up."
                   />
                 </CardHeader>
-                <CardContent>
+                <CardContent className="mx-auto w-full max-w-4xl">
                   <RainCloud
                     options={result.data.options}
                     deadline={result.arriveBy}

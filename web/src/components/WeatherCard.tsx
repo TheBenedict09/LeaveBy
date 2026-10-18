@@ -1,7 +1,7 @@
-import { useMemo, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import { CloudRain, Droplets, Eye, Info, Lightbulb, Thermometer, TrainFront, Wind } from "lucide-react"
-import { WeatherScene } from "@/components/WeatherScene"
-import { skyFrom } from "@/lib/sky"
+import { WeatherIcon } from "@/components/WeatherIcon"
+import { iconFor } from "@/lib/weatherIcon"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { fmtTime, MODE_LABEL } from "@/lib/format"
 import type { Mode, WeatherInfo, WeatherPoint } from "@/lib/types"
@@ -25,7 +25,7 @@ function condition(p: WeatherPoint): string {
 function Chip({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-background/50 px-2.5 py-1 text-xs backdrop-blur"
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-2.5 py-1 text-xs"
       aria-label={label}
     >
       {icon}
@@ -37,22 +37,24 @@ function Chip({ icon, label, children }: { icon: ReactNode; label: string; child
 /** The real forecast for the trip as an animated sky, what it costs in minutes, and advice that follows from it. */
 export function WeatherCard({ weather, winner }: { weather: WeatherInfo; winner?: Mode }) {
   const dep = weather.departure
-  const sky = useMemo(() => skyFrom(dep), [dep])
+  const icon = iconFor(dep)
   const cost = winner ? weather.extra_min[winner] : undefined
   const [worstMode, worst] = Object.entries(weather.extra_min).reduce<[string, number]>(
     (a, [m, v]) => ((v ?? 0) > a[1] ? [m, v ?? 0] : a),
     ["", 0],
   )
   const [calm, now] = weather.train_late_over_5min ?? [0, 0]
-  const night = sky.hour < 7 || sky.hour >= 19
 
   return (
     <div className="flex flex-col gap-4">
-      <div
-        className={`relative h-40 overflow-hidden rounded-xl border border-border/60 ${night ? "bg-linear-to-b from-[#0b1424] to-[#121826]" : "bg-linear-to-b from-[#1a2a44] to-[#121826]"}`}
-      >
-        <WeatherScene sky={sky} className="absolute inset-0" />
-        <div className="relative flex h-full flex-col justify-between p-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-secondary/30 p-4 sm:flex-row sm:items-center">
+        <div className="relative size-24 shrink-0 self-center">
+          <WeatherIcon name={icon} label={condition(dep)} className="size-24" />
+          {dep.gust_mph_median >= 25 && (
+            <WeatherIcon name="wind" label="Windy" className="absolute -right-3 -bottom-2 size-10" />
+          )}
+        </div>
+        <div className="flex min-w-0 flex-col gap-2">
           <div>
             <p className="text-xs text-muted-foreground">When you leave, {fmtTime(dep.at)}</p>
             <p className="text-xl font-semibold tracking-tight">{condition(dep)}</p>
